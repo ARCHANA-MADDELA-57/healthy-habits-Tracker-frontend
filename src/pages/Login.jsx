@@ -6,30 +6,30 @@ import { AuthContext } from "../context/AuthContext"; // Import context
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
-  const { login } = useContext(AuthContext); // Use the login function
-  const navigate = useNavigate();
 
+  const { login } = useContext(AuthContext); 
+  const navigate = useNavigate();
+  
   const handleLogin = (e) => {
     e.preventDefault();
-
-    const storedUser = JSON.parse(localStorage.getItem("registeredUser"));
-
-    if (
-      storedUser &&
-      storedUser.email === email &&
-      storedUser.password === password
-    ) {
-      // 1. Update global Auth State
-      login(storedUser);
+  
+    // 1. Get the list of ALL users
+    const allUsers = JSON.parse(localStorage.getItem("allUsers")) || [];
+  
+    // 2. Find the user that matches email AND password
+    const userMatch = allUsers.find(
+      (u) => u.email === email && u.password === password
+    );
+  
+    if (userMatch) {
+      // 3. Set "registeredUser" to the matched user so your Dashboard knows who is logged in
+      localStorage.setItem("registeredUser", JSON.stringify(userMatch));
       
-      // 2. Alert user
+      login(userMatch); // Update global Auth state
       alert("Login successful!");
-      
-      // 3. Navigate to dashboard
       navigate("/dashboard");
     } else {
-      alert("Invalid credentials!");
+      alert("Invalid credentials! Please check your email and password.");
     }
   };
 

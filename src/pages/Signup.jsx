@@ -12,21 +12,33 @@ const Signup = () => {
 
   const handleSignup = (e) => {
     e.preventDefault();
-
-    // Now 'email' and 'password' refer to the state variables above
-    const user = {
-        id: Date.now(), // Add this so user.id works in Dashboard
-        fullName,
-        email,
-        password,
-      };
-
-    localStorage.setItem("registeredUser", JSON.stringify(user));
-
+  
+    const newUser = {
+      id: Date.now(),
+      fullName,
+      email,
+      password,
+    };
+  
+    // 1. Get the current list of users from localStorage
+    const existingUsers = JSON.parse(localStorage.getItem("allUsers")) || [];
+  
+    // 2. Check if the email is already taken
+    if (existingUsers.some((u) => u.email === email)) {
+      alert("This email is already registered!");
+      return;
+    }
+  
+    // 3. Add the new user to the array
+    existingUsers.push(newUser);
+  
+    // 4. Save the updated array back to "allUsers"
+    localStorage.setItem("allUsers", JSON.stringify(existingUsers));
+  
     alert("Signup successful! Please login.");
     navigate("/login");
   };
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-white">
       <motion.div

@@ -1,22 +1,15 @@
-import { useState } from "react";
+import Sidebar from "../components/Sidebar"; 
 
 const MainLayout = ({ children }) => {
-  const [dark, setDark] = useState(true);
-
   return (
-    <div className={dark 
-      ? "min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-white"
-      : "min-h-screen bg-gray-100 text-black"
-    }>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-white flex">
+      {/* 1. Sidebar remains fixed inside this container */}
+      <Sidebar />
 
-      <button
-        onClick={() => setDark(!dark)}
-        className="fixed top-5 right-5 bg-white/20 px-4 py-2 rounded-lg"
-      >
-        Toggle Theme
-      </button>
-
-      {children}
+      {/* 2. ml-64 pushes content to the right so it doesn't go under the fixed sidebar */}
+      <main className="flex-1 ml-0 md:ml-64 p-4 md:p-8 min-h-screen">
+        {children}
+      </main>
     </div>
   );
 };

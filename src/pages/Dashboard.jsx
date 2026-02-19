@@ -1,16 +1,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import AddHabitModal from "../components/AddHabitModal";
-import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import confetti from "canvas-confetti";
 
 const Dashboard = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn");
@@ -22,21 +13,20 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    fetch("https://type.fit/api/quotes")
-      .then((res) => res.json())
-      .then((data) => {
-        const randomQuote = data[Math.floor(Math.random() * 20)]; // Get one of the top 20
-        setQuote({
-          text: randomQuote.text,
-          author: randomQuote.author.split(",")[0],
-        });
-      })
-      .catch(() =>
-        setQuote({
-          text: "Start where you are.",
-          author: "Arthur Ashe",
-        })
-      );
+    // Use a local array so it never fails
+    const localQuotes = [
+      { text: "Start where you are.", author: "Arthur Ashe" },
+      { text: "Done is better than perfect.", author: "Sheryl Sandberg" },
+      { text: "Keep going. Each step counts.", author: "Unknown" },
+      { text: "Focus on the step, not the mountain.", author: "Unknown" },
+    ];
+
+    // Pick a random one from your local list
+    const randomQuote =
+      localQuotes[Math.floor(Math.random() * localQuotes.length)];
+    setQuote(randomQuote);
+
+    // You can remove the fetch logic entirely to clean up your console!
   }, []);
 
   useEffect(() => {
@@ -120,6 +110,17 @@ const Dashboard = () => {
         if (h.id === id) {
           const nextVal = Math.min((h.current || 0) + 1, h.target);
           const isDone = nextVal >= h.target;
+
+          // Trigger Confetti!
+          if (isDone && !h.completedToday) {
+            confetti({
+              particleCount: 150,
+              spread: 60,
+              origin: { y: 0.7 },
+              colors: ['#6366f1', '#a855f7', '#f59e0b'] // Indigo, Purple, Orange
+            });
+          }
+
           return {
             ...h,
             current: nextVal,
@@ -146,6 +147,14 @@ const Dashboard = () => {
     );
   };
 
+  const [selectedMood, setSelectedMood] = useState(null);
+  const moods = [
+    { emoji: "😔", label: "Low" },
+    { emoji: "😐", label: "Okay" },
+    { emoji: "😊", label: "Good" },
+    { emoji: "🔥", label: "Great" },
+  ];
+
   const perfectedToday = habits.filter((h) => h.current >= h.target).length;
   const totalProgressArray = habits.map(
     (h) => (h.current || 0) / (h.target || 1)
@@ -157,25 +166,7 @@ const Dashboard = () => {
         )
       : 0;
 
-  ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend
-  );
-  const chartData = {
-    labels: habits.map((h) => h.title),
-    datasets: [
-      {
-        label: "Completion %",
-        data: habits.map((h) => ((h.current || 0) / (h.target || 1)) * 100),
-        backgroundColor: "rgba(79, 70, 229, 0.6)",
-        borderRadius: 8,
-      },
-    ],
-  };
+  const milestoneHabit = habits.find((h) => h.streak >= 7);
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-[#1a164d] via-[#2e1065] to-black text-white overflow-hidden">
@@ -218,6 +209,25 @@ const Dashboard = () => {
             </div>
           </div>
         </header>
+
+        <div className="flex gap-4 mb-8 bg-white/5 p-4 rounded-2xl border border-white/5 w-fit">
+          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 self-center mr-2">
+            Today's Vibe:
+          </p>
+          {moods.map((m) => (
+            <button
+              key={m.label}
+              onClick={() => setSelectedMood(m.label)}
+              className={`text-2xl transition-transform hover:scale-125 ${
+                selectedMood === m.label
+                  ? "grayscale-0 scale-125"
+                  : "grayscale opacity-50"
+              }`}
+            >
+              {m.emoji}
+            </button>
+          ))}
+        </div>
 
         {/* Sleek Progress Header */}
         <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 mb-8 shadow-xl">
@@ -275,20 +285,26 @@ const Dashboard = () => {
             </h3>
           </div>
         </div>
-        <div className="bg-white/5 p-6 rounded-3xl border border-white/10 mb-8">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">
-            Habit Comparison
-          </h3>
-          <div className="h-64">
-            <Bar
-              data={chartData}
-              options={{
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, max: 100 } },
-              }}
-            />
+
+        {/* --- STREAK MILESTONE BANNER --- */}
+        {habits.find((h) => h.streak >= 7) && (
+          <div className="relative overflow-hidden mb-8 group animate-in slide-in-from-top duration-700">
+            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl blur opacity-25"></div>
+            <div className="relative bg-black/40 border border-white/10 backdrop-blur-xl p-6 rounded-3xl flex items-center gap-6">
+              <div className="bg-gradient-to-br from-orange-400 to-red-500 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-lg">
+                🔥
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white">
+                  7-Day Streak Club!
+                </h3>
+                <p className="text-gray-400 text-xs">
+                  You're on fire. Consistency is the key to mastery.
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Habit Cards Grid: Responsive Columns */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 pb-24">
