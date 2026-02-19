@@ -26,32 +26,14 @@ const Analytics = () => {
   const [userName, setUserName] = useState("User");
 
   useEffect(() => {
-    // 1. Try to find the user
-    const rawUser = localStorage.getItem("registeredUser");
-    console.log("Raw User from Storage:", rawUser); // Debug Log 1
-
-    if (rawUser) {
-      const storedUser = JSON.parse(rawUser);
-
-      // Set Name
-      const name = storedUser.name || storedUser.username || "User";
-      setUserName(name);
-
-      // 2. Build the Key exactly like Dashboard
+    const storedUser = JSON.parse(localStorage.getItem("registeredUser"));
+    if (storedUser) {
+      // Set name immediately
+      setUserName(storedUser.fullName || storedUser.name || "User");
+      
       const userKey = `habits_${storedUser.email}`;
-      console.log("Looking for key:", userKey); // Debug Log 2
-
-      // 3. Get Habits
-      const rawHabits = localStorage.getItem(userKey);
-      console.log("Raw Habits found:", rawHabits); // Debug Log 3
-
-      if (rawHabits) {
-        setHabits(JSON.parse(rawHabits));
-      }
-    } else {
-      console.warn(
-        "No 'registeredUser' found in localStorage. Are you logged in?"
-      );
+      const savedHabits = JSON.parse(localStorage.getItem(userKey)) || [];
+      setHabits(savedHabits);
     }
   }, []);
 
@@ -122,16 +104,31 @@ const Analytics = () => {
     ],
   };
 
+  const handleDownload = () => {
+    // Briefly remove any overflow restrictions so the whole page is captured
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "visible";
+    
+    window.print();
+    
+    document.body.style.overflow = originalOverflow;
+  };
+
   return (
     <div className="w-full text-white animate-in fade-in duration-500">
-      <header className="mb-10">
-        <h1 className="text-4xl font-extrabold tracking-tight">
-          Performance Analytics
-        </h1>
-        <p className="text-indigo-300 opacity-80 mt-1">
-          Deep dive into your consistency, {userName}.
-        </p>
-      </header>
+      <header className="mb-10 flex justify-between items-end">
+  <div>
+    <h1 className="text-4xl font-extrabold tracking-tight">Performance Analytics</h1>
+    <p className="text-indigo-300 opacity-80 mt-1">Deep dive into your consistency, {userName}.</p>
+  </div>
+  
+  <button 
+    onClick={handleDownload}
+    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+  >
+    <span>📥</span> Download Report
+  </button>
+</header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Weekly Summary Chart */}
@@ -168,24 +165,23 @@ const Analytics = () => {
         </div>
 
         {/* Category Breakdown */}
-<div className="bg-white/5 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 shadow-2xl">
+        <div className="bg-white/5 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 shadow-2xl print:bg-indigo-950">
   <h2 className="text-xl font-semibold mb-6 text-center">Focus Areas</h2>
-  <div className="h-[250px] flex justify-center items-center">
+  <div className="h-[250px] flex justify-center items-center print:h-[400px]">
     {habits.length > 0 ? (
-      <Doughnut
-        data={categoryConfig}
-        options={{
-          cutout: "70%",
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: { color: "#9ca3af", usePointStyle: true, padding: 15 },
-            },
-          },
-        }}
-      />
+      <Doughnut 
+      data={categoryConfig} 
+      options={{
+        responsive: true,
+        maintainAspectRatio: false, // This is critical for the PDF render
+        cutout: '70%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#9ca3af' } }
+        }
+      }} 
+    />
     ) : (
-      <div className="text-gray-500 italic text-sm">No data to display</div>
+      <p>No data found.</p>
     )}
   </div>
 </div>

@@ -5,3 +5,26 @@
 body {
   @apply bg-gradient-to-br from-indigo-900 via-purple-900 to-black min-h-screen text-white;
 }
+
+@media print {
+  /* 1. Force the Doughnut Chart container to stay together */
+  .lg\:grid-cols-3 > div:nth-child(2) { 
+    page-break-before: always !important; /* Forces Focus Areas to start on Page 2 */
+    margin-top: 50px !important;
+    display: block !important;
+    min-height: 400px !important;
+  }
+
+  /* 2. Fix for the Chart.js canvas visibility */
+  canvas {
+    display: block !important;
+    visibility: visible !important;
+    max-height: 350px !important;
+  }
+
+  /* 3. Ensure background colors are forced */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
