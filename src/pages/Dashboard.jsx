@@ -6,12 +6,10 @@ const Dashboard = () => {
     const isLoggedIn = localStorage.getItem("isLoggedIn");
     const storedUser = JSON.parse(localStorage.getItem("registeredUser"));
     
-    // DEBUG: Check this in your browser console (F12) to see why the name is missing
     useEffect(() => {
         console.log("Storage Data:", storedUser);
     }, [storedUser]);
 
-    // Name Fix: Checks common keys. If all fail, it shows "User"
     const userName = storedUser?.name || storedUser?.username || storedUser?.email?.split('@')[0] || "User";
     const userKey = storedUser ? `habits_${storedUser.email}` : null;
 
