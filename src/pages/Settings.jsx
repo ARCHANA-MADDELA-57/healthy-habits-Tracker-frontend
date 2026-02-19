@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import MobileNav from "../components/MobileNav";
 // Add this if you have an icon library, otherwise we'll use emojis
 // import { Eye, EyeOff } from "lucide-react"; 
 
@@ -76,6 +77,7 @@ const Settings = () => {
 
   return (
     <div className="max-w-4xl mx-auto text-white pb-20">
+        <MobileNav />
       <header className="mb-10">
         <h1 className="text-4xl font-extrabold tracking-tight">Settings</h1>
         <p className="text-indigo-300 opacity-80 mt-1">Personalize your healthy habits journey.</p>

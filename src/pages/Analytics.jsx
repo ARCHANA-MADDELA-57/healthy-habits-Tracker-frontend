@@ -10,6 +10,7 @@ import {
   Legend,
   ArcElement,
 } from "chart.js";
+import MobileNav from "../components/MobileNav";
 
 ChartJS.register(
   CategoryScale,
@@ -118,6 +119,7 @@ const Analytics = () => {
 
   return (
     <div className="w-full text-white animate-in fade-in duration-500">
+        <MobileNav />
       <header className="mb-10 flex justify-between items-end">
   <div>
     <h1 className="text-4xl font-extrabold tracking-tight">Performance Analytics</h1>

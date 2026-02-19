@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import AddHabitModal from "../components/AddHabitModal";
 import confetti from "canvas-confetti";
 import WellnessCard from "../components/WellnessCard";
+import MobileNav from "../components/MobileNav";
 
 const Dashboard = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn");
@@ -103,6 +104,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-[#1a164d] via-[#2e1065] to-black text-white overflow-hidden">
+      <MobileNav />
       <div className="hidden md:block w-64 h-full shrink-0"><Sidebar /></div>
 
       <main className="flex-1 h-full overflow-y-auto p-4 md:p-10 custom-scrollbar">
