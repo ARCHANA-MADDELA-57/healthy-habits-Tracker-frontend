@@ -2,62 +2,43 @@ import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import AddHabitModal from "../components/AddHabitModal";
 import confetti from "canvas-confetti";
+import WellnessCard from "../components/WellnessCard";
 
 const Dashboard = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn");
   const storedUser = JSON.parse(localStorage.getItem("registeredUser"));
 
-  const [quote, setQuote] = useState({
-    text: "Loading inspiration...",
-    author: "",
-  });
+  const [quote, setQuote] = useState({ text: "Loading inspiration...", author: "" });
+  const [habits, setHabits] = useState([]);
+  const [editingHabit, setEditingHabit] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [selectedMood, setSelectedMood] = useState(null);
 
+  const userName = storedUser?.fullName || storedUser?.username || storedUser?.email?.split("@")[0] || "User";
+  const userKey = storedUser ? `habits_${storedUser.email}` : null;
+
+  // 1. Load Quotes
   useEffect(() => {
-    // Use a local array so it never fails
     const localQuotes = [
       { text: "Start where you are.", author: "Arthur Ashe" },
       { text: "Done is better than perfect.", author: "Sheryl Sandberg" },
       { text: "Keep going. Each step counts.", author: "Unknown" },
       { text: "Focus on the step, not the mountain.", author: "Unknown" },
     ];
-
-    // Pick a random one from your local list
-    const randomQuote =
-      localQuotes[Math.floor(Math.random() * localQuotes.length)];
-    setQuote(randomQuote);
-
-    // You can remove the fetch logic entirely to clean up your console!
+    setQuote(localQuotes[Math.floor(Math.random() * localQuotes.length)]);
   }, []);
 
-  useEffect(() => {
-    console.log("Storage Data:", storedUser);
-  }, [storedUser]);
-
-  const userName =
-    storedUser?.name ||
-    storedUser?.username ||
-    storedUser?.email?.split("@")[0] ||
-    "User";
-  const userKey = storedUser ? `habits_${storedUser.email}` : null;
-
-  const [habits, setHabits] = useState([]);
-  const [editingHabit, setEditingHabit] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-
+  // 2. Load Habits
   useEffect(() => {
     if (userKey) {
       const storedHabits = JSON.parse(localStorage.getItem(userKey)) || [];
       const today = new Date().toDateString();
       const lastVisit = localStorage.getItem(`${userKey}_lastVisit`);
 
-      // If it's a new day, reset daily progress but keep the streak logic
       if (lastVisit !== today) {
-        const resetHabits = storedHabits.map((h) => ({
-          ...h,
-          current: 0,
-          completedToday: false,
-        }));
+        const resetHabits = storedHabits.map((h) => ({ ...h, current: 0, completedToday: false }));
         setHabits(resetHabits);
         localStorage.setItem(`${userKey}_lastVisit`, today);
       } else {
@@ -67,373 +48,160 @@ const Dashboard = () => {
     }
   }, [userKey]);
 
+  // 3. Save Habits
   useEffect(() => {
     if (isDataLoaded && userKey) {
       localStorage.setItem(userKey, JSON.stringify(habits));
     }
   }, [habits, userKey, isDataLoaded]);
 
-  if (!isLoggedIn || !storedUser)
-    return (
-      <div className="h-screen bg-[#1a164d] flex items-center justify-center text-white">
-        Please Login.
-      </div>
-    );
+  // 4. Calculations
+  const perfectedToday = habits.filter((h) => h.completedToday).length;
+  const currentScore = habits.length > 0 ? Math.round((perfectedToday / habits.length) * 100) : 0;
+  
+  const totalProgressArray = habits.map((h) => (h.current || 0) / (h.target || 1));
+  const overallProgress = habits.length > 0
+      ? Math.round((totalProgressArray.reduce((a, b) => a + b, 0) / habits.length) * 100)
+      : 0;
 
+  const bestStreak = habits.length > 0 ? Math.max(...habits.map((h) => h.streak)) : 0;
+  const hasMilestone = habits.some((h) => h.streak >= 7);
+
+  useEffect(() => {
+    setShowWarning(habits.length > 0 && currentScore < 50);
+  }, [currentScore, habits.length]);
+
+  if (!isLoggedIn || !storedUser) return <div className="h-screen bg-[#1a164d] flex items-center justify-center text-white font-bold">Please Login.</div>;
+
+  // 5. Handlers
   const addHabit = (title, description, target, category) => {
-    const newHabit = {
-      id: Date.now(),
-      title,
-      description,
-      target: parseInt(target) || 1,
-      category: category || "General",
-      current: 0,
-      streak: 0,
-      completedToday: false,
-    };
-    setHabits([...habits, newHabit]);
+    setHabits([...habits, { id: Date.now(), title, description, target: parseInt(target) || 1, category: category || "General", current: 0, streak: 0, completedToday: false }]);
   };
 
   const updateHabit = (id, title, description, target, category) => {
-    setHabits(
-      habits.map((h) =>
-        h.id === id
-          ? { ...h, title, description, target: parseInt(target), category }
-          : h
-      )
-    );
+    setHabits(habits.map((h) => h.id === id ? { ...h, title, description, target: parseInt(target), category } : h));
   };
 
   const incrementProgress = (id) => {
-    setHabits((prev) =>
-      prev.map((h) => {
-        if (h.id === id) {
-          const nextVal = Math.min((h.current || 0) + 1, h.target);
-          const isDone = nextVal >= h.target;
-
-          // Trigger Confetti!
-          if (isDone && !h.completedToday) {
-            confetti({
-              particleCount: 150,
-              spread: 60,
-              origin: { y: 0.7 },
-              colors: ['#6366f1', '#a855f7', '#f59e0b'] // Indigo, Purple, Orange
-            });
-          }
-
-          return {
-            ...h,
-            current: nextVal,
-            streak: isDone && !h.completedToday ? h.streak + 1 : h.streak,
-            completedToday: isDone,
-          };
+    setHabits((prev) => prev.map((h) => {
+      if (h.id === id) {
+        const nextVal = Math.min((h.current || 0) + 1, h.target);
+        const isDone = nextVal >= h.target;
+        if (isDone && !h.completedToday) {
+          confetti({ particleCount: 150, spread: 60, origin: { y: 0.7 }, colors: ["#6366f1", "#a855f7", "#f59e0b"] });
         }
-        return h;
-      })
-    );
+        return { ...h, current: nextVal, streak: isDone && !h.completedToday ? h.streak + 1 : h.streak, completedToday: isDone };
+      }
+      return h;
+    }));
   };
 
   const decrementProgress = (id) => {
-    setHabits((prev) =>
-      prev.map((h) =>
-        h.id === id
-          ? {
-              ...h,
-              current: Math.max(0, (h.current || 0) - 1),
-              completedToday: false,
-            }
-          : h
-      )
-    );
+    setHabits((prev) => prev.map((h) => h.id === id ? { ...h, current: Math.max(0, (h.current || 0) - 1), completedToday: false } : h));
   };
 
-  const [selectedMood, setSelectedMood] = useState(null);
-  const moods = [
-    { emoji: "😔", label: "Low" },
-    { emoji: "😐", label: "Okay" },
-    { emoji: "😊", label: "Good" },
-    { emoji: "🔥", label: "Great" },
-  ];
-
-  const perfectedToday = habits.filter((h) => h.current >= h.target).length;
-  const totalProgressArray = habits.map(
-    (h) => (h.current || 0) / (h.target || 1)
-  );
-  const overallProgress =
-    habits.length > 0
-      ? Math.round(
-          (totalProgressArray.reduce((a, b) => a + b, 0) / habits.length) * 100
-        )
-      : 0;
-
-  const milestoneHabit = habits.find((h) => h.streak >= 7);
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-[#1a164d] via-[#2e1065] to-black text-white overflow-hidden">
-      {/* Sidebar: Responsive - Hidden on small, shown on md+ */}
-      <div className="hidden md:block w-64 h-full shrink-0">
-        <Sidebar />
-      </div>
+      <div className="hidden md:block w-64 h-full shrink-0"><Sidebar /></div>
 
-      {/* Main Content Area: Scrollable */}
       <main className="flex-1 h-full overflow-y-auto p-4 md:p-10 custom-scrollbar">
-        {/* Header Section */}
-        <header className="mb-6 md:mb-10 flex flex-col md:flex-row justify-between items-start gap-6">
-          <div>
-            <h1 className="text-2xl md:text-4xl font-bold">
-              Welcome,{" "}
-              <span className="text-indigo-400 capitalize">{userName}</span>
-            </h1>
-            <p className="text-gray-400 text-sm mt-1">
-              Ready to crush your goals today?
-            </p>
-          </div>
-
-          {/* Highlighter Quote Box */}
-          <div className="md:max-w-[300px] text-right">
-            <div className="inline-block bg-indigo-500/10 border-r-4 border-indigo-500 p-3 rounded-l-xl backdrop-blur-sm">
-              <p className="text-[11px] md:text-xs italic text-indigo-200 leading-relaxed">
-                <span className="bg-indigo-500/20 px-1 text-white not-italic font-bold mr-1 italic">
-                  "
-                </span>
-                {quote.text}
-                <span className="bg-indigo-500/20 px-1 text-white not-italic font-bold ml-1 italic">
-                  "
-                </span>
-              </p>
-              {quote.author && (
-                <p className="text-[9px] text-indigo-400 font-black uppercase mt-1 tracking-widest">
-                  — {quote.author}
-                </p>
-              )}
+        {/* Header with Wellness Widget */}
+        <header className="mb-10 flex flex-col lg:flex-row justify-between items-start gap-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 w-full">
+            <div>
+              <h1 className="text-3xl font-bold">Hey, {userName}! 👋</h1>
+              <p className="text-gray-400">Your journey is looking great today.</p>
             </div>
+            <WellnessCard score={currentScore} trend={currentScore - 70} />
+          </div>
+          <div className="lg:max-w-[300px] bg-indigo-500/10 border-r-4 border-indigo-500 p-3 rounded-l-xl backdrop-blur-sm">
+             <p className="text-xs italic text-indigo-200">"{quote.text}"</p>
+             <p className="text-[9px] text-indigo-400 font-black uppercase mt-1">— {quote.author}</p>
           </div>
         </header>
 
-        <div className="flex gap-4 mb-8 bg-white/5 p-4 rounded-2xl border border-white/5 w-fit">
-          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 self-center mr-2">
-            Today's Vibe:
-          </p>
-          {moods.map((m) => (
-            <button
-              key={m.label}
-              onClick={() => setSelectedMood(m.label)}
-              className={`text-2xl transition-transform hover:scale-125 ${
-                selectedMood === m.label
-                  ? "grayscale-0 scale-125"
-                  : "grayscale opacity-50"
-              }`}
-            >
-              {m.emoji}
-            </button>
-          ))}
-        </div>
+        {showWarning && (
+          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl mb-6 flex items-center gap-3 animate-pulse">
+            <span className="text-xl">⚠️</span>
+            <p className="text-red-400 font-bold text-sm">Wellness Alert: Your score is dipping! Log a habit to stay on track.</p>
+          </div>
+        )}
 
-        {/* Sleek Progress Header */}
-        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 mb-8 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
+
+        {/* Momentum Bar */}
+        <div className="bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 mb-8">
+          <div className="flex justify-between items-end mb-4">
             <div>
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-400">
-                Daily Momentum
-              </h2>
-              <p className="text-gray-400 text-xs">
-                You've completed{" "}
-                <span className="text-white font-bold">{perfectedToday}</span>{" "}
-                out of{" "}
-                <span className="text-white font-bold">{habits.length}</span>{" "}
-                habits
-              </p>
+              <h2 className="text-xs font-black uppercase tracking-widest text-indigo-400">Daily Momentum</h2>
+              <p className="text-2xl font-black">{overallProgress}%</p>
             </div>
-            <div className="text-right">
-              <span className="text-3xl font-black text-white">
-                {overallProgress}%
-              </span>
-            </div>
+            <p className="text-gray-400 text-xs font-bold">{perfectedToday} / {habits.length} Done</p>
           </div>
-
-          {/* Slim Progress Bar */}
-          <div className="relative w-full bg-black/40 h-2 rounded-full overflow-hidden">
-            <div
-              className="absolute top-0 left-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full transition-all duration-1000 ease-out"
-              style={{ width: `${overallProgress}%` }}
-            ></div>
+          <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-500 to-pink-500 h-full transition-all duration-1000" style={{ width: `${overallProgress}%` }}></div>
           </div>
         </div>
 
-        {/* Quick Stats Grid (Responsive 1-3 columns) */}
+        {/* RESTORED: Stats Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
-            <p className="text-gray-400 text-[9px] font-bold uppercase mb-1">
-              Total
-            </p>
+            <p className="text-gray-400 text-[9px] font-bold uppercase mb-1">Total Habits</p>
             <h3 className="text-2xl font-black">{habits.length}</h3>
           </div>
           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
-            <p className="text-green-400 text-[9px] font-bold uppercase mb-1">
-              Perfect
-            </p>
-            <h3 className="text-2xl font-black text-green-400">
-              {perfectedToday}
-            </h3>
+            <p className="text-green-400 text-[9px] font-bold uppercase mb-1">Completed</p>
+            <h3 className="text-2xl font-black text-green-400">{perfectedToday}</h3>
           </div>
           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
-            <p className="text-orange-400 text-[9px] font-bold uppercase mb-1">
-              Best Streak
-            </p>
-            <h3 className="text-2xl font-black text-orange-400">
-              {habits.length > 0 ? Math.max(...habits.map((h) => h.streak)) : 0}
-            </h3>
+            <p className="text-orange-400 text-[9px] font-bold uppercase mb-1">Best Streak</p>
+            <h3 className="text-2xl font-black text-orange-400">{bestStreak} Days</h3>
           </div>
         </div>
 
-        {/* --- STREAK MILESTONE BANNER --- */}
-        {habits.find((h) => h.streak >= 7) && (
-          <div className="relative overflow-hidden mb-8 group animate-in slide-in-from-top duration-700">
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl blur opacity-25"></div>
-            <div className="relative bg-black/40 border border-white/10 backdrop-blur-xl p-6 rounded-3xl flex items-center gap-6">
-              <div className="bg-gradient-to-br from-orange-400 to-red-500 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-lg">
-                🔥
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-white">
-                  7-Day Streak Club!
-                </h3>
-                <p className="text-gray-400 text-xs">
-                  You're on fire. Consistency is the key to mastery.
-                </p>
+        {/* RESTORED: Streak Milestone Banner */}
+        {hasMilestone && (
+          <div className="relative overflow-hidden mb-8 animate-in slide-in-from-left duration-500">
+            <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-red-600 rounded-3xl blur opacity-20"></div>
+            <div className="relative bg-black/40 border border-white/10 p-6 rounded-3xl flex items-center gap-6">
+              <div className="bg-orange-500 w-12 h-12 rounded-xl flex items-center justify-center text-xl shadow-lg">🔥</div>
+              <div>
+                <h3 className="text-lg font-bold">7-Day Streak Club!</h3>
+                <p className="text-gray-400 text-xs">You're maintaining incredible consistency. Keep the fire burning!</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Habit Cards Grid: Responsive Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 pb-24">
-          {habits.length === 0 && (
-            <div className="col-span-full text-center py-20 bg-white/5 rounded-[2rem] border border-dashed border-white/20">
-              <p className="text-gray-400">
-                No habits added yet. Click the + button to start your journey!
-              </p>
-            </div>
-          )}
+        {/* Habits Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
+          {habits.length === 0 && <div className="col-span-full text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/20 text-gray-400">No habits yet. Start by clicking the + button!</div>}
           {habits.map((habit) => {
-            const percent = Math.round(
-              ((habit.current || 0) / (habit.target || 1)) * 100
-            );
-            const safePercent = isNaN(percent) ? 0 : percent;
-
+            const perc = Math.round((habit.current / habit.target) * 100);
             return (
-              <div
-                key={habit.id}
-                className={`p-6 rounded-[2rem] border transition-all shadow-xl flex flex-col justify-between backdrop-blur-md 
-                    ${
-                      habit.completedToday
-                        ? "bg-indigo-500/10 border-indigo-500/50 shadow-indigo-500/10"
-                        : "bg-white/5 border-white/10 hover:bg-white/10"
-                    }`}
-              >
-                <div>
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="relative w-14 h-14 shrink-0">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle
-                          cx="28"
-                          cy="28"
-                          r="24"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="transparent"
-                          className="text-white/5"
-                        />
-                        <circle
-                          cx="28"
-                          cy="28"
-                          r="24"
-                          stroke="#4f46e5"
-                          strokeWidth="4"
-                          fill="transparent"
-                          strokeDasharray={150.8}
-                          strokeDashoffset={150.8 - (150.8 * safePercent) / 100}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">
-                        {safePercent}%
-                      </span>
-                    </div>
-                    <div className="text-right flex-1 ml-4">
-                      <span className="text-[8px] font-black bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded uppercase">
-                        {habit.category}
-                      </span>
-                      <h3
-                        className={`text-lg font-bold truncate mt-1 ${
-                          habit.completedToday
-                            ? "line-through text-indigo-400/50"
-                            : "text-white"
-                        }`}
-                      >
-                        {habit.title} {habit.completedToday && "✓"}
-                      </h3>
-                      <p className="text-orange-400 text-[10px] font-bold">
-                        🔥 {habit.streak} DAYS
-                      </p>
-                    </div>
+              <div key={habit.id} className={`p-6 rounded-[2rem] border transition-all ${habit.completedToday ? "bg-indigo-500/10 border-indigo-500/50" : "bg-white/5 border-white/10"}`}>
+                <div className="flex justify-between mb-4">
+                  <div className="text-left">
+                    <span className="text-[8px] font-black bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded uppercase">{habit.category}</span>
+                    <h3 className={`text-lg font-bold truncate mt-1 ${habit.completedToday ? "line-through text-indigo-400/50" : ""}`}>{habit.title}</h3>
                   </div>
-                  <p className="text-gray-400 text-xs mb-8 line-clamp-2 italic">
-                    "{habit.description}"
-                  </p>
+                  <div className="text-right text-orange-400 font-bold text-xs">🔥 {habit.streak}</div>
                 </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                    <span>Progress</span>
-                    <span className="text-white">
-                      {habit.current} / {habit.target}
-                    </span>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="flex-1 bg-black/40 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-indigo-500 h-full" style={{ width: `${perc}%` }}></div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => decrementProgress(habit.id)}
-                        className="w-12 py-3 rounded-xl bg-white/5 hover:bg-white/10"
-                      >
-                        -
-                      </button>
-                      <button
-                        onClick={() => incrementProgress(habit.id)}
-                        disabled={habit.completedToday}
-                        className={`flex-1 py-3 rounded-xl font-bold text-xs uppercase transition-all
-        ${
-          habit.completedToday
-            ? "bg-green-500/20 text-green-400 cursor-not-allowed"
-            : "bg-indigo-600 hover:bg-indigo-500 text-white"
-        }`}
-                      >
-                        {habit.completedToday
-                          ? "Goal Reached ✓"
-                          : "+ Log Progress"}
-                      </button>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingHabit(habit);
-                          setIsOpen(true);
-                        }}
-                        className="flex-1 py-2 bg-white/5 rounded-lg text-[10px] font-bold uppercase hover:bg-white/10"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm("Delete?"))
-                            setHabits(habits.filter((h) => h.id !== habit.id));
-                        }}
-                        className="flex-1 py-2 bg-red-500/10 text-red-500 rounded-lg text-[10px] font-bold uppercase hover:bg-red-500/20"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
+                  <span className="text-[10px] font-bold text-gray-400">{perc}%</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => decrementProgress(habit.id)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center">-</button>
+                  <button onClick={() => incrementProgress(habit.id)} disabled={habit.completedToday} className={`flex-1 h-10 rounded-lg font-bold text-[10px] uppercase ${habit.completedToday ? "bg-green-500/20 text-green-400" : "bg-indigo-600 hover:bg-indigo-500"}`}>
+                    {habit.completedToday ? "Done ✓" : "+ Progress"}
+                  </button>
+                </div>
+                <div className="flex gap-2 mt-4 opacity-40 hover:opacity-100 transition-opacity">
+                  <button onClick={() => { setEditingHabit(habit); setIsOpen(true); }} className="flex-1 py-1 text-[9px] font-bold uppercase border border-white/10 rounded-md">Edit</button>
+                  <button onClick={() => { if(window.confirm("Delete?")) setHabits(habits.filter(h => h.id !== habit.id)) }} className="flex-1 py-1 text-[9px] font-bold uppercase border border-red-500/20 text-red-500 rounded-md">Delete</button>
                 </div>
               </div>
             );
@@ -441,27 +209,9 @@ const Dashboard = () => {
         </div>
       </main>
 
-      {/* Mobile Add Button */}
-      <button
-        onClick={() => {
-          setEditingHabit(null);
-          setIsOpen(true);
-        }}
-        className="fixed bottom-6 right-6 md:bottom-10 md:right-10 bg-indigo-600 w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center text-3xl shadow-2xl z-50 hover:scale-110 active:scale-95 transition-all"
-      >
-        +
-      </button>
+      <button onClick={() => { setEditingHabit(null); setIsOpen(true); }} className="fixed bottom-6 right-6 bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-2xl z-50 hover:scale-110 active:scale-95 transition-all">+</button>
 
-      <AddHabitModal
-        isOpen={isOpen}
-        onClose={() => {
-          setIsOpen(false);
-          setEditingHabit(null);
-        }}
-        onAdd={addHabit}
-        onUpdate={updateHabit}
-        editingHabit={editingHabit}
-      />
+      <AddHabitModal isOpen={isOpen} onClose={() => { setIsOpen(false); setEditingHabit(null); }} onAdd={addHabit} onUpdate={updateHabit} editingHabit={editingHabit} />
     </div>
   );
 };
