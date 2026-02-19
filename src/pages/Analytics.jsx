@@ -104,6 +104,8 @@ const Analytics = () => {
     ],
   };
 
+  
+
   const handleDownload = () => {
     // Briefly remove any overflow restrictions so the whole page is captured
     const originalOverflow = document.body.style.overflow;

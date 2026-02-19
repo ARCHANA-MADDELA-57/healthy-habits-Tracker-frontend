@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Analytics from "./pages/Analytics";
 import MainLayout from "./layout/MainLayout";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
@@ -32,6 +33,16 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <Analytics />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Settings />
                 </MainLayout>
               </ProtectedRoute>
             }

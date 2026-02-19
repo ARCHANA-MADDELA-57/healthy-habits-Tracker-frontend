@@ -28,3 +28,12 @@ body {
     print-color-adjust: exact !important;
   }
 }
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 50;
+  /* Ensure it doesn't shrink when content grows */
+  flex-shrink: 0; 
+}
