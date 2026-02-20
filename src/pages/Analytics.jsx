@@ -47,7 +47,6 @@ const Analytics = () => {
 
   // 1. Automatically find all unique categories used in your habits
   // 1. Get unique categories from your ACTUAL habits
-  // This prevents the chart from being empty if you use custom names
   const categories =
     habits.length > 0
       ? [...new Set(habits.map((h) => h.category || "General"))]
@@ -58,7 +57,7 @@ const Analytics = () => {
     (cat) => habits.filter((h) => (h.category || "General") === cat).length
   );
 
-  // 3. Dynamic color generator (so you don't run out of colors)
+  // 3. Dynamic color generator 
   const chartColors = [
     "#6366f1",
     "#a855f7",
@@ -69,7 +68,7 @@ const Analytics = () => {
     "#ef4444",
     "#06b6d4",
   ];
-  // Check if we have "Misc" data not in our main list
+
   const accountedFor = categoryCounts.reduce((a, b) => a + b, 0);
   const hasData = habits.length > 0;
 
@@ -108,7 +107,6 @@ const Analytics = () => {
   
 
   const handleDownload = () => {
-    // Briefly remove any overflow restrictions so the whole page is captured
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "visible";
     
