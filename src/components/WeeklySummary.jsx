@@ -1,76 +1,131 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import { motion } from "framer-motion";
+
+const CATEGORIES = [
+  { name: "Fitness", icon: "💪" },
+  { name: "Hydration", icon: "💧" },
+  { name: "Sleep", icon: "🌙" },
+  { name: "Meditation", icon: "🧘" },
+  { name: "Nutrition", icon: "🥗" },
+  { name: "Study", icon: "📚" },
+];
 
 const WeeklySummary = ({ userEmail }) => {
   const userKey = `habits_${userEmail}`;
-  const historyKey = `${userKey}_history`;
-  
-  // Pull data from LocalStorage
-  const history = JSON.parse(localStorage.getItem(historyKey)) || [];
+  const history = JSON.parse(localStorage.getItem(`${userKey}_history`)) || [];
 
   if (history.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center bg-white/5 rounded-[2.5rem] border border-white/10">
-        <div className="text-5xl mb-4">📜</div>
-        <h3 className="text-xl font-bold text-white/50">Your history is empty</h3>
-        <p className="text-gray-500 text-sm mt-2">Finish your habits today, and they'll appear here tomorrow!</p>
+      <div className="p-12 text-center bg-white/5 rounded-[2.5rem] border border-white/10">
+        <h3 className="text-xl font-bold text-white/50 italic tracking-tight">
+          Your habit journey hasn't started yet.
+        </h3>
       </div>
     );
   }
 
+  const historyLogs = [...history].slice(0, 7);
+
   return (
-    <div className="space-y-6 max-w-2xl mx-auto p-4">
-      <header className="mb-8">
-        <h2 className="text-3xl font-black text-white">Weekly Progress</h2>
-        <p className="text-indigo-400 text-sm font-bold uppercase tracking-widest">Last 7 Days</p>
-      </header>
+    <div className="w-full overflow-hidden rounded-3xl border border-white/10 bg-[#1e1b4b]/50 backdrop-blur-md">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-left">
+          <thead>
+            <tr className="bg-white/5">
+              <th className="p-5 text-[10px] font-black text-indigo-300 uppercase tracking-widest border-b border-white/10">
+                Date
+              </th>
+              {/* CLEAN HEADER: Just Icons and Names */}
+              {CATEGORIES.map((cat) => (
+                <th key={cat.name} className="p-5 text-center border-b border-white/10">
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-xl">{cat.icon}</span>
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+                      {cat.name}
+                    </span>
+                  </div>
+                </th>
+              ))}
+              <th className="p-5 text-center text-[10px] font-black text-indigo-300 uppercase border-b border-white/10">
+                Progress
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {historyLogs.map((dayRecord, idx) => {
+              const totalHabits = dayRecord.habits?.length || 0;
+              const completedHabits = dayRecord.habits?.filter((h) => h.completed).length || 0;
+              const dailyPercent = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
 
-      {history.map((dayRecord, index) => (
-        <motion.div
-          key={dayRecord.date}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className="bg-[#1e1b4b]/50 backdrop-blur-xl border border-white/10 rounded-[2rem] overflow-hidden shadow-xl"
-        >
-          {/* Header of the Day Card */}
-          <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
-            <div>
-              <h4 className="text-lg font-black text-white">{dayRecord.date}</h4>
-              <p className="text-xs text-indigo-300 font-bold uppercase">
-                {new Date(dayRecord.date).toLocaleDateString('en-US', { weekday: 'long' })}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-black text-indigo-500">
-                {Math.round((dayRecord.habits.filter(h => h.completed).length / dayRecord.habits.length) * 100)}%
-              </span>
-              <p className="text-[10px] text-gray-500 font-bold uppercase">Success Rate</p>
-            </div>
-          </div>
+              return (
+                <motion.tr
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  key={dayRecord.date + idx}
+                  className="hover:bg-white/[0.02] transition-colors"
+                >
+                  <td className="p-5 whitespace-nowrap">
+                    <div className="text-white font-bold text-sm">
+                      {dayRecord.date.split(" ").slice(0, 3).join(" ")}
+                    </div>
+                    <div className="text-[10px] text-gray-500 font-medium">
+                      {dayRecord.date.split(" ").slice(3)}
+                    </div>
+                  </td>
 
-          {/* List of Habits for that Day */}
-          <div className="p-4 space-y-3">
-            {dayRecord.habits.map((habit, i) => (
-              <div 
-                key={i} 
-                className="flex justify-between items-center p-4 bg-black/20 rounded-2xl border border-white/5"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${habit.completed ? 'bg-green-500' : 'bg-red-500'}`} />
-                  <span className="text-sm font-semibold text-gray-200">{habit.title}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xs font-mono text-gray-500">{habit.score}</span>
-                  <span className={`text-xs font-black uppercase ${habit.completed ? 'text-green-400' : 'text-red-400'}`}>
-                    {habit.completed ? "Goal Met" : "Missed"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      ))}
+                  {/* LOGIC LIVES HERE: One cell per category */}
+                  {CATEGORIES.map((cat) => {
+                    const habitsInCat = dayRecord.habits.filter(
+                      (h) => h.category?.trim().toLowerCase() === cat.name.toLowerCase()
+                    );
+
+                    if (habitsInCat.length === 0) {
+                      return (
+                        <td key={cat.name} className="p-5 text-center text-white font-bold opacity-30">
+                          -
+                        </td>
+                      );
+                    }
+
+                    const isCatDone = habitsInCat.every((h) => h.completed);
+                    return (
+                      <td key={cat.name} className="p-5 text-center">
+                        {isCatDone ? (
+                          <span className="inline-block text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.4)]">
+                            ✅
+                          </span>
+                        ) : (
+                          <span className="inline-block text-red-400 opacity-80">
+                            ❌
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+
+                  <td className="p-5">
+                    <div className="flex justify-center items-center relative">
+                      <svg className="w-10 h-10 transform -rotate-90">
+                        <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" fill="transparent" className="text-white/5" />
+                        <circle
+                          cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" fill="transparent"
+                          strokeDasharray={100}
+                          strokeDashoffset={100 - dailyPercent}
+                          className="text-indigo-500 transition-all duration-700 ease-out"
+                        />
+                      </svg>
+                      <span className="absolute text-[8px] font-black text-white">
+                        {dailyPercent}%
+                      </span>
+                    </div>
+                  </td>
+                </motion.tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

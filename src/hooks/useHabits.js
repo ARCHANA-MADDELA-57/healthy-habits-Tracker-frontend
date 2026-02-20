@@ -21,7 +21,9 @@ export const useHabits = (userKey) => {
         date: lastVisit,
         habits: storedHabits.map((h) => ({
           title: h.title,
-          completed: h.current >= h.target,
+          category: h.category,
+          // Ensure this logic is accurate:
+          completed: Number(h.current) >= Number(h.target), 
           score: `${h.current}/${h.target}`,
         })),
       };
