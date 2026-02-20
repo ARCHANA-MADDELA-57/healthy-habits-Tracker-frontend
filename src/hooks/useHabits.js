@@ -62,26 +62,27 @@ export const useHabits = (userKey) => {
   }, [habits, userKey, isDataLoaded]);
 
   // --- HANDLERS ---
-  const addHabit = (title, description, target, category, isEveryday) => {
+  const addHabit = (title, description, target, category, isEveryday, unit) => {
     const newHabit = {
       id: Date.now(),
       title,
       description,
       target: parseInt(target) || 1,
+      unit: unit || "units", // 👈 Store the unit
       category: category || "General",
       current: 0,
       streak: 0,
       completedToday: false,
-      isEveryday: !!isEveryday, 
+      isEveryday: !!isEveryday,
     };
     setHabits((prev) => [...prev, newHabit]);
   };
-
-  const updateHabit = (id, title, description, target, category, isEveryday) => {
+  
+  const updateHabit = (id, title, description, target, category, isEveryday, unit) => {
     setHabits((prev) =>
       prev.map((h) =>
         h.id === id
-          ? { ...h, title, description, target: parseInt(target), category, isEveryday: !!isEveryday }
+          ? { ...h, title, description, target: parseInt(target), category, isEveryday: !!isEveryday, unit: unit || h.unit }
           : h
       )
     );
