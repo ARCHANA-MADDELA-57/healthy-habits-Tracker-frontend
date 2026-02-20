@@ -22,26 +22,31 @@ export const useHabits = (userKey) => {
         habits: storedHabits.map((h) => ({
           title: h.title,
           category: h.category,
-          // Ensure this logic is accurate:
           completed: Number(h.current) >= Number(h.target), 
           score: `${h.current}/${h.target}`,
         })),
       };
 
-      // Only add to history if this specific date isn't already there
       if (!currentHistory.find(item => item.date === lastVisit)) {
         const updatedHistory = [yesterdayRecord, ...currentHistory].slice(0, 7);
         localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
       }
 
-      // 2. Filter: Only keep 'Everyday' habits
+      // 2. NEW DAY RESET + STREAK BREAK LOGIC
+      // We only keep 'Everyday' habits and we check if they failed yesterday
       const newDayHabits = storedHabits
         .filter((h) => h.isEveryday === true)
-        .map((h) => ({ 
-          ...h, 
-          current: 0, 
-          completedToday: false 
-        }));
+        .map((h) => {
+          const finishedYesterday = h.current >= h.target;
+          return { 
+            ...h, 
+            current: 0, 
+            completedToday: false,
+            // IF they didn't finish yesterday, streak drops to 0.
+            // IF they did finish, we KEEP the streak number they earned.
+            streak: finishedYesterday ? h.streak : 0 
+          };
+        });
 
       localStorage.setItem(userKey, JSON.stringify(newDayHabits));
       localStorage.setItem(`${userKey}_lastVisit`, today);
@@ -68,7 +73,7 @@ export const useHabits = (userKey) => {
       title,
       description,
       target: parseInt(target) || 1,
-      unit: unit || "units", // 👈 Store the unit
+      unit: unit || "units",
       category: category || "General",
       current: 0,
       streak: 0,
@@ -89,29 +94,64 @@ export const useHabits = (userKey) => {
   };
 
   const incrementProgress = (id) => {
-    setHabits((prev) => prev.map((h) => {
-      if (h.id === id) {
-        const nextVal = Math.min((h.current || 0) + 1, h.target);
-        const isDone = nextVal >= h.target;
-        if (isDone && !h.completedToday) {
-          confetti({ particleCount: 150, spread: 60, origin: { y: 0.7 } });
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (h.id === id) {
+          // 1. Check if the goal is already met
+          if (h.current >= h.target) {
+            alert(`You've already achieved today's goal for "${h.title}"! 🎉`);
+            return h; // Return unchanged
+          }
+  
+          const nextCount = h.current + 1;
+          const reachedGoalJustNow = nextCount === h.target;
+  
+          if (reachedGoalJustNow) {
+            confetti({
+              particleCount: 150,
+              spread: 70,
+              origin: { y: 0.6 },
+              colors: ['#6366f1', '#ec4899', '#22c55e']
+            });
+          }
+  
+          return {
+            ...h,
+            current: nextCount,
+            streak: reachedGoalJustNow && !h.completedToday ? h.streak + 1 : h.streak,
+            completedToday: nextCount >= h.target,
+          };
         }
-        return { ...h, current: nextVal, streak: isDone && !h.completedToday ? h.streak + 1 : h.streak, completedToday: isDone };
-      }
-      return h;
-    }));
+        return h;
+      })
+    );
   };
-
+  
   const decrementProgress = (id) => {
-    setHabits((prev) => prev.map((h) => 
-      h.id === id ? { ...h, current: Math.max(0, (h.current || 0) - 1), completedToday: false } : h
-    ));
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (h.id === id && h.current > 0) {
+          const nextCount = h.current - 1;
+          
+          // Logic: Were they completed BEFORE this click, and are they now BELOW target?
+          const wasCompleted = h.current >= h.target;
+          const isNowIncomplete = nextCount < h.target;
+  
+          return {
+            ...h,
+            current: nextCount,
+            // If they fall below the goal, remove the streak point earned today
+            streak: (wasCompleted && isNowIncomplete) ? Math.max(0, h.streak - 1) : h.streak,
+            completedToday: nextCount >= h.target,
+          };
+        }
+        return h;
+      })
+    );
   };
 
   const deleteHabit = (id) => {
-    if (window.confirm("Delete this habit?")) {
-      setHabits((prev) => prev.filter((h) => h.id !== id));
-    }
+    setHabits((prev) => prev.filter((h) => h.id !== id));
   };
 
   return { 
