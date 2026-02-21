@@ -10,6 +10,7 @@ const CATEGORIES = [
   { name: "Meditation", icon: "🧘" },
   { name: "Nutrition", icon: "🥗" },
   { name: "Study", icon: "📚" },
+  { name: "Other", icon: "👤" }, // Added Other
 ];
 
 const WeeklySummary = ({ userEmail }) => {
@@ -68,7 +69,7 @@ const WeeklySummary = ({ userEmail }) => {
       link.href = url;
       link.download = `Habit_Report_${selectedMonth}_${selectedYear}.csv`;
       link.click();
-      toast.success("Report downloaded successfully!", { theme: "dark", icon: "📥" });
+      toast.success("Report downloaded!", { theme: "dark", icon: "📥" });
     } catch (err) {
       toast.error("Download failed.");
     }
@@ -80,35 +81,22 @@ const WeeklySummary = ({ userEmail }) => {
 
   return (
     <div className="w-full space-y-6">
-      <ToastContainer limit={3} />
-
-      {/* Controls */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-5 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] uppercase font-bold text-indigo-400 ml-1">Month</label>
-            <select 
-              value={selectedMonth} 
-              onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(0); }}
-              className="bg-[#1e1b4b] text-white text-sm border border-white/10 rounded-xl px-4 py-2 outline-none"
-            >
+            <select value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(0); }} className="bg-[#1e1b4b] text-white text-sm border border-white/10 rounded-xl px-4 py-2 outline-none">
               <option value="All">All Months</option>
               {months.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] uppercase font-bold text-indigo-400 ml-1">Year</label>
-            <select 
-              value={selectedYear} 
-              onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(0); }}
-              className="bg-[#1e1b4b] text-white text-sm border border-white/10 rounded-xl px-4 py-2 outline-none"
-            >
+            <select value={selectedYear} onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(0); }} className="bg-[#1e1b4b] text-white text-sm border border-white/10 rounded-xl px-4 py-2 outline-none">
               {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
-          <button onClick={downloadCSV} className="mt-5 ml-2 p-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-xl flex items-center gap-2">
-            📥 Download Report
-          </button>
+          <button onClick={downloadCSV} className="mt-5 ml-2 p-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-xl flex items-center gap-2">📥 Download</button>
         </div>
 
         <div className="flex items-center gap-6">
@@ -121,7 +109,6 @@ const WeeklySummary = ({ userEmail }) => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="w-full overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#1e1b4b]/40 backdrop-blur-xl">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left">
@@ -139,70 +126,34 @@ const WeeklySummary = ({ userEmail }) => {
                 <th className="p-6 text-center text-[10px] font-black text-indigo-300 uppercase border-b border-white/10">Progress</th>
               </tr>
             </thead>
-            <AnimatePresence mode="popLayout">
-              <motion.tbody 
-                key={`${selectedMonth}-${selectedYear}-${currentPage}`}
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                className="divide-y divide-white/5"
-              >
-                {currentLogs.map((dayRecord) => {
-                  const total = dayRecord.habits?.length || 0;
-                  const doneCount = dayRecord.habits?.filter(h => h.completed).length || 0;
-                  const dailyPercent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
-
-                  return (
-                    <tr key={dayRecord.date} className="hover:bg-white/[0.03] transition-colors">
-                      <td className="p-6 whitespace-nowrap">
-                        <div className="text-white font-bold text-base">{dayRecord.date.split(" ").slice(0, 3).join(" ")}</div>
-                        <div className="text-[11px] text-indigo-300/50">{dayRecord.date.split(" ").slice(3).join(" ")}</div>
-                      </td>
-
-                      {CATEGORIES.map((cat) => {
-                        const habitsInCat = dayRecord.habits.filter(h => h.category?.trim().toLowerCase() === cat.name.toLowerCase());
-                        
-                        if (habitsInCat.length === 0) {
-                          return (
-                            <td key={cat.name} className="p-6 text-center">
-                              <span className="text-white font-black text-lg opacity-40">-</span>
-                            </td>
-                          );
-                        }
-
-                        const isCatDone = habitsInCat.every(h => h.completed);
-                        
-                        return (
-                          <td key={cat.name} className="p-6 text-center">
-                            {isCatDone ? (
-                              <span className="text-xl drop-shadow-[0_0_8px_rgba(74,222,128,0.6)]">✅</span>
-                            ) : (
-                              <span className="text-xl drop-shadow-[0_0_8px_rgba(248,113,113,0.4)]">❌</span>
-                            )}
-                          </td>
-                        );
-                      })}
-
-                      <td className="p-6 text-center">
-                        <div className="flex justify-center items-center relative">
-                          <svg className="w-12 h-12 transform -rotate-90">
-                            <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
-                            <circle
-                              cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent"
-                              strokeDasharray={125.6} 
-                              strokeDashoffset={125.6 - (125.6 * dailyPercent) / 100}
-                              strokeLinecap="round" 
-                              className="text-indigo-500 transition-all duration-700"
-                            />
-                          </svg>
-                          <span className="absolute text-[10px] font-black text-white">{dailyPercent}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </motion.tbody>
-            </AnimatePresence>
+            <motion.tbody className="divide-y divide-white/5">
+              {currentLogs.map((dayRecord) => {
+                const total = dayRecord.habits?.length || 0;
+                const doneCount = dayRecord.habits?.filter(h => h.completed).length || 0;
+                const dailyPercent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+                return (
+                  <tr key={dayRecord.date} className="hover:bg-white/[0.03] transition-colors">
+                    <td className="p-6 whitespace-nowrap">
+                      <div className="text-white font-bold text-base">{dayRecord.date.split(" ").slice(0, 3).join(" ")}</div>
+                    </td>
+                    {CATEGORIES.map((cat) => {
+                      const habitsInCat = dayRecord.habits.filter(h => h.category?.trim().toLowerCase() === cat.name.toLowerCase());
+                      if (habitsInCat.length === 0) return <td key={cat.name} className="p-6 text-center opacity-20">-</td>;
+                      return <td key={cat.name} className="p-6 text-center">{habitsInCat.every(h => h.completed) ? "✅" : "❌"}</td>;
+                    })}
+                    <td className="p-6 text-center">
+                      <div className="flex justify-center items-center relative">
+                        <svg className="w-10 h-10 transform -rotate-90">
+                          <circle cx="20" cy="20" r="18" stroke="currentColor" strokeWidth="3" fill="transparent" className="text-white/5" />
+                          <circle cx="20" cy="20" r="18" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={113} strokeDashoffset={113 - (113 * dailyPercent) / 100} strokeLinecap="round" className="text-indigo-500" />
+                        </svg>
+                        <span className="absolute text-[8px] font-black text-white">{dailyPercent}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </motion.tbody>
           </table>
         </div>
       </div>
