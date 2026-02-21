@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "react-toastify"; // 1. Import toast
+import { toast } from "react-toastify";
 
 const CATEGORIES = [
   { name: "Fitness", icon: "💪", defaultUnit: "mins" },
@@ -21,8 +21,14 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
   const [unit, setUnit] = useState("mins");
   const [isEveryday, setIsEveryday] = useState(false);
   const [status, setStatus] = useState("idle");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
+
+  // Dropdown visibility states
+  const [isCatOpen, setIsCatOpen] = useState(false);
+  const [isUnitOpen, setIsUnitOpen] = useState(false);
+
+  // Refs for clicking outside to close
+  const catRef = useRef(null);
+  const unitRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,37 +51,39 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
     }
   }, [editingHabit, isOpen]);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (catRef.current && !catRef.current.contains(event.target)) setIsCatOpen(false);
+      if (unitRef.current && !unitRef.current.contains(event.target)) setIsUnitOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleCategorySelect = (cat) => {
     setCategory(cat.name);
     if (!editingHabit) setUnit(cat.defaultUnit);
-    setIsDropdownOpen(false);
+    setIsCatOpen(false);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Validation check
     if (!title.trim()) {
       toast.warn("Please give your habit a name!");
       return;
     }
 
     setStatus("saving");
-
     setTimeout(() => {
       if (editingHabit) {
         onUpdate(editingHabit.id, title, description, target, category, isEveryday, unit);
-        // 2. Success Toast for Update
         toast.success("Habit updated successfully!");
       } else {
         onAdd(title, description, target, category, isEveryday, unit);
-        // 3. Success Toast for New Habit
         toast.success(`${title} added to your routine!`);
       }
-      
       setStatus("success");
-      
-      // Close modal after success animation
       setTimeout(() => onClose(), 800);
     }, 1500);
   };
@@ -83,28 +91,47 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <style>{`
+        /* Hide arrows in Chrome, Safari, Edge, Opera */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
           -webkit-appearance: none;
           margin: 0;
         }
+        /* Hide arrows in Firefox */
         input[type=number] {
           -moz-appearance: textfield;
         }
+        /* Hide scrollbars */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#1e1b4b] border border-white/10 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl text-white">
-        <h2 className="text-2xl font-black mb-6 text-center">{editingHabit ? "Edit Habit" : "New Habit"}</h2>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        className="bg-[#1e1b4b] border border-white/10 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl text-white max-h-[90vh] overflow-y-auto no-scrollbar"
+      >
+        <h2 className="text-2xl font-black mb-6 text-center">
+          {editingHabit ? "Edit Habit" : "New Habit"}
+        </h2>
         
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Habit Name */}
           <div>
             <label className="text-[10px] font-black text-indigo-300 uppercase tracking-widest ml-1">Habit Name</label>
-            <input type="text" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mt-2 outline-none focus:border-indigo-500" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <input 
+              type="text" 
+              className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mt-2 outline-none focus:border-indigo-500" 
+              value={title} 
+              onChange={(e) => setTitle(e.target.value)} 
+              required 
+            />
           </div>
 
           <div className="flex gap-4">
+            {/* Daily Goal - No Arrows */}
             <div className="flex-[1]">
               <label className="text-[10px] font-black text-indigo-300 uppercase tracking-widest ml-1">Daily Goal</label>
               <input 
@@ -113,41 +140,95 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
                 className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mt-2 outline-none focus:border-indigo-500" 
                 value={target} 
                 onChange={(e) => setTarget(e.target.value)} 
+                onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
                 required 
               />
             </div>
-            <div className="flex-[1]">
+
+            {/* Custom Unit Dropdown */}
+            <div className="flex-[1] relative" ref={unitRef}>
               <label className="text-[10px] font-black text-indigo-300 uppercase tracking-widest ml-1">Unit</label>
-              <select className="w-full p-4 rounded-2xl bg-[#2d2a6e] border border-white/10 mt-2 outline-none focus:border-indigo-500 cursor-pointer" value={unit} onChange={(e) => setUnit(e.target.value)}>
-                {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="relative" ref={dropdownRef}>
-            <label className="text-[10px] font-black text-indigo-300 uppercase tracking-widest ml-1">Category</label>
-            <div onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mt-2 cursor-pointer flex justify-between items-center">
-              <span>{CATEGORIES.find(c => c.name === category)?.icon} {category}</span>
-              <span className="text-indigo-400">▼</span>
-            </div>
-            {isDropdownOpen && (
-              <div className="absolute z-[210] w-full mt-1 bg-[#2d2a6e] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-                {CATEGORIES.map(cat => (
-                  <div key={cat.name} className="p-4 hover:bg-indigo-600 cursor-pointer flex items-center gap-3" onClick={() => handleCategorySelect(cat)}>
-                    <span>{cat.icon}</span> <span>{cat.name}</span>
-                  </div>
-                ))}
+              <div 
+                onClick={() => setIsUnitOpen(!isUnitOpen)}
+                className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mt-2 cursor-pointer flex justify-between items-center transition-colors hover:bg-white/10"
+              >
+                <span className="truncate">{unit}</span>
+                <span className={`text-[10px] transition-transform duration-200 ${isUnitOpen ? 'rotate-180' : ''}`}>▼</span>
               </div>
-            )}
+              <AnimatePresence>
+                {isUnitOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute z-[220] w-full mt-1 bg-[#2d2a6e] border border-white/10 rounded-2xl overflow-y-auto max-h-[160px] shadow-2xl no-scrollbar"
+                  >
+                    {UNIT_OPTIONS.map(u => (
+                      <div 
+                        key={u} 
+                        className="p-4 hover:bg-indigo-600 cursor-pointer text-sm" 
+                        onClick={() => { setUnit(u); setIsUnitOpen(false); }}
+                      >
+                        {u}
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl cursor-pointer" onClick={() => setIsEveryday(!isEveryday)}>
-            <input type="checkbox" checked={isEveryday} readOnly className="w-5 h-5 accent-indigo-500" />
-            <label className="text-sm text-gray-300">Repeat this goal every day</label>
+          {/* Custom Category Dropdown */}
+          <div className="relative" ref={catRef}>
+            <label className="text-[10px] font-black text-indigo-300 uppercase tracking-widest ml-1">Category</label>
+            <div 
+              onClick={() => setIsCatOpen(!isCatOpen)} 
+              className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mt-2 cursor-pointer flex justify-between items-center transition-colors hover:bg-white/10"
+            >
+              <span>{CATEGORIES.find(c => c.name === category)?.icon} {category}</span>
+              <span className={`text-[10px] transition-transform duration-200 ${isCatOpen ? 'rotate-180' : ''}`}>▼</span>
+            </div>
+            <AnimatePresence>
+              {isCatOpen && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute z-[210] w-full mt-1 bg-[#2d2a6e] border border-white/10 rounded-2xl overflow-y-auto max-h-[200px] shadow-2xl no-scrollbar"
+                >
+                  {CATEGORIES.map(cat => (
+                    <div 
+                      key={cat.name} 
+                      className="p-4 hover:bg-indigo-600 cursor-pointer flex items-center gap-3 transition-colors" 
+                      onClick={() => handleCategorySelect(cat)}
+                    >
+                      <span className="text-xl">{cat.icon}</span> 
+                      <span className="text-sm font-medium">{cat.name}</span>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
+          {/* Everyday Checkbox */}
+          <div 
+            className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl cursor-pointer hover:bg-white/10 transition-colors" 
+            onClick={() => setIsEveryday(!isEveryday)}
+          >
+            <input type="checkbox" checked={isEveryday} readOnly className="w-5 h-5 accent-indigo-500 rounded" />
+            <label className="text-sm text-gray-300 cursor-pointer">Repeat this goal every day</label>
+          </div>
+
+          {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 rounded-2xl bg-white/5 font-black text-xs uppercase hover:bg-white/10 transition-colors">Cancel</button>
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="flex-1 py-4 rounded-2xl bg-white/5 font-black text-xs uppercase hover:bg-white/10 transition-colors"
+            >
+              Cancel
+            </button>
             
             <button 
               type="submit" 
