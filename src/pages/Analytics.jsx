@@ -68,9 +68,7 @@ const Analytics = () => {
     datasets: [{ data: categoryCounts, backgroundColor: chartColors.slice(0, categories.length), borderWidth: 0 }],
   };
 
-  const handleDownload = () => {
-    window.print();
-  };
+  
 
   return (
     <div className="w-full text-white p-4 md:p-8 space-y-12">
@@ -82,9 +80,6 @@ const Analytics = () => {
           <h1 className="text-4xl font-extrabold tracking-tight italic">ANALYTICS_BOARD</h1>
           <p className="text-indigo-300 opacity-80 mt-1">Consistency report for {userName}.</p>
         </div>
-        <button onClick={handleDownload} className="bg-indigo-600 hover:bg-indigo-500 px-6 py-3 rounded-2xl font-bold text-sm transition-all flex items-center gap-2">
-          <span>📥</span> Download PDF
-        </button>
       </header>
 
       {/* 2. CHARTS SECTION */}

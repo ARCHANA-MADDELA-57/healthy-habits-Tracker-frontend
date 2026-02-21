@@ -1,20 +1,35 @@
-import { NavLink, useNavigate } from "react-router-dom"; // Use useNavigate, not Navigate
+import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
+// 1. Import Toastify
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate(); // Initialize the navigate hook
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    // 1. Clear the login status
-    localStorage.removeItem("isLoggedIn");
-    
-    // 2. Redirect the user using the navigate function
-    navigate("/login");
+    // 2. Trigger the Logout Toast
+    toast.info("Logging out...", {
+      position: "top-center",
+      autoClose: 1500,
+      theme: "dark",
+    });
+
+    // 3. Delay navigation so toast is visible
+    setTimeout(() => {
+      localStorage.removeItem("isLoggedIn");
+      // Optional: If you use userEmail in other components, clear that too
+      // localStorage.removeItem("userEmail"); 
+      navigate("/login");
+    }, 1500);
   };
 
   return (
     <>
+      {/* 4. Add the Container here so it's always listening */}
+      <ToastContainer limit={1} />
+
       {/* ================= DESKTOP SIDEBAR ================= */}
       <div className="hidden md:flex fixed left-0 top-0 w-64 bg-gradient-to-b from-indigo-900/90 to-purple-900/90 backdrop-blur-xl p-6 flex-col justify-between h-screen border-r border-white/10 z-50">
         <div>
