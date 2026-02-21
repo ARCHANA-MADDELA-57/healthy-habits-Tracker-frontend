@@ -2,18 +2,22 @@ import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
+import { toast } from "react-toastify"; // 1. Import toast
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("idle"); // 'idle' | 'loading' | 'success'
+  const [status, setStatus] = useState("idle");
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email || !password) {
+      toast.warn("Please enter your credentials");
+      return;
+    }
 
     setStatus("loading");
 
@@ -27,16 +31,17 @@ const Login = () => {
         localStorage.setItem("registeredUser", JSON.stringify(userMatch));
         login(userMatch);
         
-        // Switch to Success State
         setStatus("success");
+        // 2. Success Toast
+        toast.success(`Welcome back, ${userMatch.fullName || 'User'}!`);
 
-        // Redirect after a short delay so they can see the success message
         setTimeout(() => {
           navigate("/dashboard");
         }, 1500);
       } else {
         setStatus("idle");
-        alert("Invalid credentials!");
+        // 3. Error Toast replaces the generic alert
+        toast.error("Invalid email or password!");
       }
     }, 1200);
   };

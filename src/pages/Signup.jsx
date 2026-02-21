@@ -1,22 +1,25 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify"; // 1. Import toast
 
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Loading state
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
 
   const handleSignup = (e) => {
     e.preventDefault();
-    if (!email || !password || !fullName) return;
+    if (!email || !password || !fullName) {
+      toast.warn("Please fill in all fields");
+      return;
+    }
 
     setIsLoading(true);
 
-    // Artificial delay for better UX/Loader visibility
     setTimeout(() => {
       const newUser = {
         id: Date.now(),
@@ -28,7 +31,7 @@ const Signup = () => {
       const existingUsers = JSON.parse(localStorage.getItem("allUsers")) || [];
 
       if (existingUsers.some((u) => u.email === email)) {
-        alert("This email is already registered!");
+        toast.error("This email is already registered!");
         setIsLoading(false);
         return;
       }
@@ -37,8 +40,13 @@ const Signup = () => {
       localStorage.setItem("allUsers", JSON.stringify(existingUsers));
 
       setIsLoading(false);
-      alert("Signup successful! Please login.");
-      navigate("/login");
+      
+      // ✅ Use only one success toast for a cleaner look
+      toast.success("Signup successful! Redirecting to login...");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000); // 2 seconds gives the toast enough time to be read
     }, 1200);
   };
 
@@ -51,7 +59,9 @@ const Signup = () => {
         className="bg-white/10 backdrop-blur-xl p-10 rounded-2xl shadow-2xl w-full max-w-[400px] border border-white/10"
       >
         <h2 className="text-3xl font-bold mb-2 text-center">Create Account</h2>
-        <p className="text-indigo-200/60 text-center mb-8 text-sm">Join us for a healthier lifestyle</p>
+        <p className="text-indigo-200/60 text-center mb-8 text-sm">
+          Join us for a healthier lifestyle
+        </p>
 
         <form onSubmit={handleSignup} className="space-y-4">
           <input
@@ -100,7 +110,11 @@ const Signup = () => {
                 >
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1,
+                      ease: "linear",
+                    }}
                     className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
                   />
                   <span>Creating Account...</span>

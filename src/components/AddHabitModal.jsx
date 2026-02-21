@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify"; // 1. Import toast
 
 const CATEGORIES = [
   { name: "Fitness", icon: "💪", defaultUnit: "mins" },
@@ -52,23 +53,37 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation check
+    if (!title.trim()) {
+      toast.warn("Please give your habit a name!");
+      return;
+    }
+
     setStatus("saving");
+
     setTimeout(() => {
       if (editingHabit) {
         onUpdate(editingHabit.id, title, description, target, category, isEveryday, unit);
+        // 2. Success Toast for Update
+        toast.success("Habit updated successfully!");
       } else {
         onAdd(title, description, target, category, isEveryday, unit);
+        // 3. Success Toast for New Habit
+        toast.success(`${title} added to your routine!`);
       }
+      
       setStatus("success");
+      
+      // Close modal after success animation
       setTimeout(() => onClose(), 800);
-    }, 1500); // Increased time slightly to see the nice loader
+    }, 1500);
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-      {/* 1. CSS to hide number arrows */}
       <style>{`
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
@@ -134,7 +149,6 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="flex-1 py-4 rounded-2xl bg-white/5 font-black text-xs uppercase hover:bg-white/10 transition-colors">Cancel</button>
             
-            {/* 2. Updated Submit Button with Loader */}
             <button 
               type="submit" 
               disabled={status !== "idle"} 
