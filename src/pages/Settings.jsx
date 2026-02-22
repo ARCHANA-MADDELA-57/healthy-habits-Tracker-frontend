@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from "react";
 import MobileNav from "../components/MobileNav";
-import { Eye, EyeOff, Bell, BellOff } from "lucide-react"; 
+import { Bell, BellOff, RefreshCw, Smartphone } from "lucide-react"; 
+import { useGoogleLogin } from '@react-oauth/google';
+// Ensure you have fetchRealGoogleFitData exported from your healthService
+import { healthService, fetchRealGoogleFitData } from '../services/healthService';
 
 const Settings = () => {
   const [user, setUser] = useState({ fullName: "", email: "" });
   const [isSaved, setIsSaved] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   
+  // Health Sync States
+  const [healthData, setHealthData] = useState(healthService.fetchData());
+  const [isSyncing, setIsSyncing] = useState(false);
+
   // Notification Toggle State
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     localStorage.getItem("notificationsEnabled") === "true"
   );
-
-  // Password States
-  const [passwords, setPasswords] = useState({ old: "", new: "", confirm: "" });
-  const [passError, setPassError] = useState("");
-  const [passSuccess, setPassSuccess] = useState(false);
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("registeredUser"));
@@ -27,12 +28,30 @@ const Settings = () => {
     }
   }, []);
 
-  // --- NEW: Handle Notification Toggle ---
+  // REAL GOOGLE SYNC LOGIC
+  const login = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsSyncing(true);
+      try {
+        // Use the access_token directly
+        const realData = await fetchRealGoogleFitData(tokenResponse.access_token);
+        const updated = healthService.syncData(realData);
+        setHealthData(updated);
+      } catch (error) {
+        console.error("Sync Error:", error);
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    // Ensure the scope matches what you set in Google Cloud
+    scope: 'https://www.googleapis.com/auth/fitness.activity.read',
+    flow: 'implicit', 
+  });
+
   const toggleNotifications = () => {
     const newState = !notificationsEnabled;
     setNotificationsEnabled(newState);
     localStorage.setItem("notificationsEnabled", newState);
-
     if (newState && "Notification" in window) {
       Notification.requestPermission();
     }
@@ -45,40 +64,6 @@ const Settings = () => {
     localStorage.setItem("registeredUser", JSON.stringify(updatedUser));
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
-  };
-
-  const handlePasswordUpdate = (e) => {
-    e.preventDefault();
-    const storedUser = JSON.parse(localStorage.getItem("registeredUser"));
-    if (!storedUser) return;
-  
-    if (passwords.old !== storedUser.password) {
-      setPassError("Current password incorrect.");
-      return;
-    }
-    if (passwords.new.length < 6) {
-      setPassError("Min 6 characters required.");
-      return;
-    }
-    if (passwords.new !== passwords.confirm) {
-      setPassError("Passwords do not match.");
-      return;
-    }
-  
-    const updatedUser = { ...storedUser, password: passwords.new };
-    localStorage.setItem("registeredUser", JSON.stringify(updatedUser));
-  
-    const allUsers = JSON.parse(localStorage.getItem("users")) || [];
-    const updatedList = allUsers.map(u => u.email === storedUser.email ? updatedUser : u);
-    localStorage.setItem("users", JSON.stringify(updatedList));
-    localStorage.setItem(storedUser.email, JSON.stringify(updatedUser));
-  
-    setPassSuccess(true);
-    setTimeout(() => {
-      localStorage.removeItem("isLoggedIn"); // Better than clear() to keep settings
-      alert("Security sync complete. Please log in with your new password.");
-      window.location.href = "/login";
-    }, 1500);
   };
 
   return (
@@ -120,80 +105,62 @@ const Settings = () => {
           </form>
         </section>
 
-        {/* Password Section */}
+        {/* Health Sync Section - Updated to use login() */}
         <section className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 shadow-2xl">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2">🔒 Change Password</h2>
+          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">⌚ Device Integrations</h2>
+          <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-black/20 rounded-2xl border border-white/5 gap-6">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-indigo-500/20 text-indigo-400 rounded-2xl">
+                <Smartphone size={32} />
+              </div>
+              <div>
+                <p className="font-bold text-lg">Google Fit Sync</p>
+                <p className="text-sm text-gray-400 max-w-[250px]">Pull real-time step data from your Google account.</p>
+                {healthData.lastSynced && (
+                  <p className="text-[10px] text-indigo-300 uppercase mt-1 tracking-widest">Last Sync: {healthData.lastSynced}</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-8 text-center">
+                <div>
+                    <p className="text-[10px] text-gray-500 uppercase font-black">Steps</p>
+                    <p className="text-xl font-bold">{healthData.steps}</p>
+                </div>
+                <div>
+                    <p className="text-[10px] text-gray-500 uppercase font-black">Sleep</p>
+                    <p className="text-xl font-bold">{healthData.sleepHours}h</p>
+                </div>
+            </div>
+
             <button 
-              type="button" 
-              onClick={() => setShowPassword(!showPassword)}
-              className="flex items-center gap-2 text-xs text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wider transition-colors"
+              onClick={() => login()} 
+              disabled={isSyncing}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all min-w-[160px] justify-center ${
+                isSyncing ? "bg-gray-700 text-gray-400" : "bg-indigo-600 hover:bg-indigo-500 text-white"
+              }`}
             >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              {showPassword ? "Hide" : "Show"}
+              <RefreshCw size={18} className={isSyncing ? "animate-spin" : ""} />
+              {isSyncing ? "Connecting..." : "Sync Google Fit"}
             </button>
           </div>
-          
-          <form onSubmit={handlePasswordUpdate} className="grid grid-cols-1 gap-4 max-w-md">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Current Password"
-              className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none"
-              value={passwords.old}
-              onChange={(e) => setPasswords({ ...passwords, old: e.target.value })}
-            />
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="New Password"
-              className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none"
-              value={passwords.new}
-              onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-            />
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Confirm New Password"
-              className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none"
-              value={passwords.confirm}
-              onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-            />
-
-            {passError && <p className="text-red-400 text-sm font-medium">{passError}</p>}
-            {passSuccess && <p className="text-green-400 text-sm font-bold animate-bounce">Password Updated!</p>}
-
-            <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/20">
-              Update Security
-            </button>
-          </form>
         </section>
 
-        {/* --- UPDATED: App Preferences --- */}
+        {/* App Preferences */}
         <section className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 shadow-2xl">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            ⚙️ App Preferences
-          </h2>
-          <div className="flex items-center justify-between p-6 bg-black/20 rounded-2xl border border-white/5 transition-all">
+          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">⚙️ App Preferences</h2>
+          <div className="flex items-center justify-between p-6 bg-black/20 rounded-2xl border border-white/5">
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-xl ${notificationsEnabled ? 'bg-indigo-500/20 text-indigo-400' : 'bg-gray-500/10 text-gray-500'}`}>
                 {notificationsEnabled ? <Bell size={24} /> : <BellOff size={24} />}
               </div>
               <div>
                 <p className="font-bold">Daily Reminders</p>
-                <p className="text-xs text-gray-400 max-w-[200px]">
-                  Receive a notification to log your habits when you fall behind.
-                </p>
+                <p className="text-xs text-gray-400 max-w-[200px]">Receive notifications to log your habits.</p>
               </div>
             </div>
-            
-            {/* Functional Toggle Switch */}
-            <div 
-              onClick={toggleNotifications}
-              className={`w-14 h-7 rounded-full flex items-center px-1 cursor-pointer transition-all duration-300 ${
-                notificationsEnabled ? 'bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'bg-gray-700'
-              }`}
-            >
-              <div className={`w-5 h-5 bg-white rounded-full transition-transform duration-300 transform ${
-                notificationsEnabled ? 'translate-x-7' : 'translate-x-0'
-              }`}></div>
+            <div onClick={toggleNotifications} className={`w-14 h-7 rounded-full flex items-center px-1 cursor-pointer transition-all duration-300 ${notificationsEnabled ? 'bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'bg-gray-700'}`}>
+              <div className={`w-5 h-5 bg-white rounded-full transition-transform duration-300 transform ${notificationsEnabled ? 'translate-x-7' : 'translate-x-0'}`}></div>
             </div>
           </div>
         </section>
@@ -201,19 +168,8 @@ const Settings = () => {
         {/* Danger Zone */}
         <section className="bg-red-500/5 backdrop-blur-md p-8 rounded-[2rem] border border-red-500/20 shadow-2xl">
           <h2 className="text-xl font-semibold text-red-400 mb-2">🛑 Danger Zone</h2>
-          <p className="text-gray-400 text-sm mb-6">Resetting your data will clear all progress for your habits.</p>
-          <button
-            onClick={() => {
-              if (window.confirm("Are you sure? This will delete all your local habits!")) {
-                const userKey = `habits_${user.email}`;
-                localStorage.removeItem(userKey);
-                window.location.reload();
-              }
-            }}
-            className="border border-red-500/50 hover:bg-red-500/10 text-red-500 px-6 py-2 rounded-xl text-xs font-bold uppercase transition-all"
-          >
-            Clear All Habit Progress
-          </button>
+          <p className="text-gray-400 text-sm mb-6">Resetting your data will clear all progress.</p>
+          <button onClick={() => { if (window.confirm("Are you sure?")) { localStorage.removeItem(`habits_${user.email}`); window.location.reload(); } }} className="border border-red-500/50 hover:bg-red-500/10 text-red-500 px-6 py-2 rounded-xl text-xs font-bold uppercase transition-all">Clear All Habit Progress</button>
         </section>
       </div>
     </div>
