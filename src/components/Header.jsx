@@ -1,115 +1,66 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import WellnessCard from "./WellnessCard";
+import React from 'react';
+import { motion } from 'framer-motion';
+import { TypeAnimation } from 'react-type-animation';
 
-const Header = ({ userName, currentScore, quote, showWarning }) => {
-  const [index, setIndex] = useState(0);
-  const messages = [
-    "Your journey is looking great today.",
-    "Consistency is the key to success!"
-  ];
+const Header = ({ userName, neglectedHabit, quote }) => {
+  const quoteDisplay = quote?.text ? `"${quote.text}" — ${quote.author || 'Unknown'}` : "Loading inspiration...";
 
-  // Cycle messages every 5 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev === 0 ? 1 : 0));
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Framer Motion Variants
-  const container = {
-    visible: { transition: { staggerChildren: 0.05 } },
-  };
-
-  const letter = {
-    hidden: { opacity: 0, display: "none" },
-    visible: { opacity: 1, display: "inline" },
+  const scrollToHabit = () => {
+    if (neglectedHabit) {
+      const element = document.getElementById(`habit-${neglectedHabit.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Brief "highlight" effect by adding a temporary class or flash
+        element.classList.add('ring-2', 'ring-red-500', 'rounded-2xl', 'transition-all');
+        setTimeout(() => {
+          element.classList.remove('ring-2', 'ring-red-500');
+        }, 2000);
+      }
+    }
   };
 
   return (
-    <header className="mb-10">
-      <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 w-full">
-          <div className="min-h-[110px]">
-            {/* TYPEWRITER HEADING */}
-            <div className="flex flex-wrap items-center">
-              <motion.h1
-                variants={container}
-                initial="hidden"
-                animate="visible"
-                className="text-3xl font-bold flex flex-wrap items-center"
-              >
-                {Array.from(`Hey, ${userName}! 👋`).map((char, i) => (
-                  <motion.span key={i} variants={letter}>
-                    {char === " " ? "\u00A0" : char}
-                  </motion.span>
-                ))}
-                <motion.span
-                  variants={letter}
-                  animate={{ opacity: [1, 0] }}
-                  transition={{ repeat: Infinity, duration: 0.8, ease: "steps(2)" }}
-                  className="inline-block w-[3px] h-8 bg-indigo-500 ml-1"
-                />
-              </motion.h1>
-            </div>
-
-            {/* CYCLING TYPEWRITER MESSAGES */}
-            <div className="mt-3 relative">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={index}
-                  variants={container}
-                  initial="hidden"
-                  animate="visible"
-                  exit={{ opacity: 0, transition: { duration: 0.2 } }}
-                  className={`${
-                    index === 0 ? "text-gray-400" : "text-indigo-400 font-medium"
-                  } text-sm md:text-base flex flex-wrap items-center`}
-                >
-                  {Array.from(messages[index]).map((char, i) => (
-                    <motion.span key={i} variants={letter}>
-                      {char === " " ? "\u00A0" : char}
-                    </motion.span>
-                  ))}
-                  <motion.span
-                    variants={letter}
-                    animate={{ opacity: [1, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.8, ease: "steps(2)" }}
-                    className="inline-block w-[2px] h-5 bg-indigo-400 ml-1"
-                  />
-                </motion.p>
-              </AnimatePresence>
-            </div>
-          </div>
-
-          <WellnessCard score={currentScore} trend={currentScore - 70} />
+    <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+      <div className="max-w-xl">
+        <h1 className="text-4xl font-black tracking-tighter flex items-center gap-3">
+          Hey, <span className="text-indigo-400">{userName}</span> ! 
+          <motion.span animate={{ rotate: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 2 }}>👋</motion.span>
+        </h1>
+        
+        <div className="h-6 mt-2">
+          <TypeAnimation
+            key={quote?.text} 
+            sequence={[quoteDisplay, 3000, "Consistency is the DNA of mastery.", 2000]}
+            wrapper="p"
+            speed={50}
+            className="text-gray-400 text-sm italic font-medium"
+            repeat={Infinity}
+          />
         </div>
-
-        {/* INSPIRATIONAL QUOTE BOX */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="lg:max-w-[300px] bg-indigo-500/10 border-r-4 border-indigo-500 p-4 rounded-l-xl backdrop-blur-sm shadow-lg"
-        >
-          <p className="text-xs italic text-indigo-200">"{quote.text}"</p>
-          <p className="text-[10px] text-indigo-400 font-black uppercase mt-2 tracking-[0.1em]">
-            — {quote.author}
-          </p>
-        </motion.div>
       </div>
 
-      {/* WELLNESS WARNING (Moved inside Header for cleaner Dashboard) */}
-      {showWarning && (
+      {neglectedHabit && (
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl mt-6 flex items-center gap-3 animate-pulse"
+          initial={{ opacity: 0, scale: 0.9, x: 20 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={scrollToHabit}
+          className="bg-red-500/10 border-l-4 border-red-500 p-4 rounded-r-2xl flex items-center gap-4 max-w-sm backdrop-blur-md shadow-lg shadow-red-500/10 cursor-pointer group"
         >
-          <span className="text-xl">⚠️</span>
-          <p className="text-red-400 font-bold text-sm">
-            Wellness Alert: Your score is dipping! Log a habit to stay on track.
-          </p>
+          <div className="bg-red-500/20 w-10 h-10 rounded-full flex items-center justify-center text-xl animate-pulse group-hover:bg-red-500/40 transition-colors">
+            🚨
+          </div>
+          <div>
+            <h4 className="text-red-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">
+              Neglect Detected: {neglectedHabit.category}
+            </h4>
+            <p className="text-white font-bold text-sm leading-tight">
+              {neglectedHabit.title} is at {Math.round((neglectedHabit.current / neglectedHabit.target) * 100)}%
+            </p>
+            <p className="text-[9px] text-red-300/60 mt-1 font-bold italic">Click to take action →</p>
+          </div>
         </motion.div>
       )}
     </header>
