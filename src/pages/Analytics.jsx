@@ -76,8 +76,8 @@ const Analytics = () => {
       
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter italic">VITAL_SIGNS_v2</h1>
-          <p className="text-indigo-400 font-medium">System analysis for {userName}.</p>
+          <h1 className="text-4xl font-black tracking-tighter italic">Performance Analytics</h1>
+          <p className="text-indigo-400 font-medium">Comprehensive habit analysis for {userName}.</p>
         </div>
 
         {/* WELLNESS SCORE DISPLAY with Animation */}
