@@ -59,7 +59,7 @@ const Home = () => {
                 <h1 className="text-2xl font-bold">HealthyHabits</h1>
 
                 <div className="flex gap-6">
-                    <Link to="/login" className="hover:text-gray-300 transition">
+                    <Link to="/login" className="px-5 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg font-semibold hover:text-gray-300 transition">
                         Login
                     </Link>
                     <Link
@@ -91,7 +91,7 @@ const Home = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="mt-6 max-w-2xl text-lg text-gray-400"
+                    className="mt-6 max-w-2xl text-lg text-white"
                 >
                     Smart analytics, streak tracking, and powerful insights to help
                     you become the best version of yourself.
@@ -121,7 +121,7 @@ const Home = () => {
                         key={i}
                         animate={{ y: [0, -15, 0] }}
                         transition={{ repeat: Infinity, duration: 3 + i }}
-                        className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-white/20"
+                        className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-white/20 font-bold"
                     >
                         {habit}
                     </motion.div>
