@@ -12,40 +12,41 @@ const Login = () => {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       toast.warn("Please enter your credentials");
       return;
     }
-
+  
     setStatus("loading");
-
-    setTimeout(() => {
-      const allUsers = JSON.parse(localStorage.getItem("allUsers")) || [];
-      const userMatch = allUsers.find(
-        (u) => u.email === email && u.password === password
-      );
-
-      if (userMatch) {
-        localStorage.setItem("registeredUser", JSON.stringify(userMatch));
-        login(userMatch);
+  
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        // ✅ Pass BOTH user and token to context
+        login(data.user, data.token); 
         
         setStatus("success");
-        // 2. Success Toast
-        toast.success(`Welcome back, ${userMatch.fullName || 'User'}!`);
-
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 1500);
+        toast.success(`Welcome back, ${data.user.fullName}!`);
+        setTimeout(() => navigate("/dashboard"), 1500);
       } else {
         setStatus("idle");
-        // 3. Error Toast replaces the generic alert
-        toast.error("Invalid email or password!");
+        toast.error(data.error || "Invalid credentials");
       }
-    }, 1200);
+    } catch (err) {
+      setStatus("idle");
+      toast.error("Server connection error");
+    }
   };
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-white px-4">
       <motion.div

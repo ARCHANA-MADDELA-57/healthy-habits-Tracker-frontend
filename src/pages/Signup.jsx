@@ -11,43 +11,42 @@ const Signup = () => {
 
   const navigate = useNavigate();
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
-    if (!email || !password || !fullName) {
-      toast.warn("Please fill in all fields");
-      return;
+  
+    // 1. Frontend Regex Checks
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  
+    if (!fullName.trim()) return toast.error("Full Name is required");
+    if (!emailRegex.test(email)) return toast.error("Please enter a valid email");
+    if (!passwordRegex.test(password)) {
+      return toast.error("Password too weak! Use uppercase, numbers, and symbols.");
     }
-
+  
     setIsLoading(true);
-
-    setTimeout(() => {
-      const newUser = {
-        id: Date.now(),
-        fullName,
-        email,
-        password,
-      };
-
-      const existingUsers = JSON.parse(localStorage.getItem("allUsers")) || [];
-
-      if (existingUsers.some((u) => u.email === email)) {
-        toast.error("This email is already registered!");
-        setIsLoading(false);
-        return;
+  
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName, email, password }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        toast.success("Signup successful! You can now login.");
+        setTimeout(() => navigate("/login"), 2000);
+      } else {
+        // This catches "User already registered" from Supabase
+        toast.error(data.error || "Signup failed");
       }
-
-      existingUsers.push(newUser);
-      localStorage.setItem("allUsers", JSON.stringify(existingUsers));
-
+    } catch (err) {
+      toast.error("Could not connect to the server.");
+    } finally {
       setIsLoading(false);
-      
-      // ✅ Use only one success toast for a cleaner look
-      toast.success("Signup successful! Redirecting to login...");
-
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000); // 2 seconds gives the toast enough time to be read
-    }, 1200);
+    }
   };
 
   return (

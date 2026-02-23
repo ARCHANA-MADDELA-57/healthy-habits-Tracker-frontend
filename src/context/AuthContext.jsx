@@ -7,24 +7,29 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in on page load
-    const loggedInStatus = localStorage.getItem("isLoggedIn");
-    const storedUser = JSON.parse(localStorage.getItem("registeredUser"));
-    
-    if (loggedInStatus === "true" && storedUser) {
-      setUser(storedUser);
+    const storedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
+
+    if (storedUser && token) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        localStorage.clear();
+      }
     }
     setLoading(false);
   }, []);
 
-  const login = (userData) => {
+  const login = (userData, token) => {
     setUser(userData);
-    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("token", token);
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("isLoggedIn");
+    localStorage.clear();
+    window.location.href = "/login";
   };
 
   return (
