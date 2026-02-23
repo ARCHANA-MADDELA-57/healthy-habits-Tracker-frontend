@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { RefreshCw } from "lucide-react"; // Added for the sync icon
-import { useGoogleLogin } from '@react-oauth/google'; // Added for direct sync
+import { RefreshCw } from "lucide-react";
+import { useGoogleLogin } from '@react-oauth/google';
 import Sidebar from "../components/Sidebar";
 import AddHabitModal from "../components/AddHabitModal";
 import MobileNav from "../components/MobileNav";
@@ -26,7 +26,6 @@ const Dashboard = () => {
   const [syncData, setSyncData] = useState(healthService.fetchData());
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Direct Sync Logic
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsSyncing(true);
@@ -71,7 +70,11 @@ const Dashboard = () => {
       <MobileNav />
       <div className="hidden md:block w-64 h-full shrink-0"><Sidebar /></div>
       <main className="flex-1 h-full overflow-y-auto p-4 md:p-10 custom-scrollbar">
-        <Header userName={userName} neglectedHabit={neglectedHabit} quote={quote} />
+        <Header 
+          userName={userName} 
+          neglectedHabit={neglectedHabit} 
+          quote={quote} 
+        />
 
         <div className="flex flex-col lg:flex-row gap-6 mb-8 items-stretch">
           <div className="flex-1"><WellnessCard score={wellnessScore} /></div>
@@ -89,36 +92,26 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Stats Grid with 5 Columns */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
             <p className="text-gray-400 text-[9px] font-bold uppercase mb-1">Active Habits</p>
             <h3 className="text-2xl font-black">{habits.length}</h3>
           </div>
-          
           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
             <p className="text-green-400 text-[9px] font-bold uppercase mb-1">Perfect Today</p>
             <h3 className="text-2xl font-black text-green-400">{perfectedToday}</h3>
           </div>
-
           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
             <p className="text-orange-400 text-[9px] font-bold uppercase mb-1">Max Streak</p>
             <h3 className="text-2xl font-black text-orange-400">{bestStreak}d</h3>
           </div>
-
-          {/* Synced Steps with the new Sync Icon */}
           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center relative group">
-            <button 
-              onClick={() => login()} 
-              disabled={isSyncing}
-              className="absolute top-2 right-2 text-indigo-400 hover:text-white transition-colors disabled:opacity-30"
-            >
+            <button onClick={() => login()} disabled={isSyncing} className="absolute top-2 right-2 text-indigo-400 hover:text-white transition-colors disabled:opacity-30">
               <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
             </button>
             <p className="text-indigo-400 text-[9px] font-bold uppercase mb-1">Synced Steps</p>
             <h3 className="text-2xl font-black">{syncData.steps.toLocaleString()}</h3>
           </div>
-
           <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
             <p className="text-pink-400 text-[9px] font-bold uppercase mb-1">Sleep Hrs</p>
             <h3 className="text-2xl font-black text-pink-400">{syncData.sleepHours}h</h3>
@@ -127,7 +120,15 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
           {habits.map((habit) => (
-            <HabitCard key={habit.id} habit={habit} onIncrement={incrementProgress} onDecrement={decrementProgress} onEdit={(h) => { setEditingHabit(h); setIsOpen(true); }} onDelete={deleteHabit} />
+            <div key={habit.id} id={`habit-${habit.id}`} className="transition-all duration-500 scroll-mt-20">
+              <HabitCard 
+                habit={habit} 
+                onIncrement={incrementProgress} 
+                onDecrement={decrementProgress} 
+                onEdit={(h) => { setEditingHabit(h); setIsOpen(true); }} 
+                onDelete={deleteHabit} 
+              />
+            </div>
           ))}
         </div>
       </main>

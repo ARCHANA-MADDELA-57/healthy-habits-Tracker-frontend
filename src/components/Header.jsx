@@ -11,11 +11,13 @@ const Header = ({ userName, neglectedHabit, quote }) => {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
-        // Brief "highlight" effect by adding a temporary class or flash
-        element.classList.add('ring-2', 'ring-red-500', 'rounded-2xl', 'transition-all');
+        // Applying the red curved border/glow
+        // We use rounded-[2.5rem] to match your AddHabitModal and HabitCard style
+        element.classList.add('ring-4', 'ring-red-500/50', 'rounded-[2rem]', 'transition-all', 'duration-500', 'scale-[1.02]', 'z-10');
+        
         setTimeout(() => {
-          element.classList.remove('ring-2', 'ring-red-500');
-        }, 2000);
+          element.classList.remove('ring-4', 'ring-red-500/50', 'rounded-[2rem]', 'scale-[1.02]', 'z-10');
+        }, 2500);
       }
     }
   };
