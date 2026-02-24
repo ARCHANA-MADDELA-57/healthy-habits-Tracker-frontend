@@ -40,10 +40,18 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("token", token);
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.clear();
-    window.location.href = "/login";
+  const logout = async () => {
+    try {
+      // 1. Tell Supabase to end the session
+      await supabase.auth.signOut(); 
+    } catch (error) {
+      console.error("Error logging out from Supabase:", error.message);
+    } finally {
+      // 2. Clear local data regardless of backend success
+      setUser(null);
+      localStorage.clear();
+      window.location.href = "/login";
+    }
   };
 
   return (

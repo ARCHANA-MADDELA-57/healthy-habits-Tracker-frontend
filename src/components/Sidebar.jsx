@@ -1,27 +1,26 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useContext, useState } from "react";
 // 1. Import Toastify
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { AuthContext } from "../context/AuthContext";
 
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
+  const { logout } = useContext(AuthContext); // Get logout from context
+
   const handleLogout = () => {
-    // 2. Trigger the Logout Toast
     toast.info("Logging out...", {
       position: "top-center",
       autoClose: 1500,
       theme: "dark",
     });
 
-    // 3. Delay navigation so toast is visible
+    // Call the central logout function from AuthContext
     setTimeout(() => {
-      localStorage.removeItem("isLoggedIn");
-      // Optional: If you use userEmail in other components, clear that too
-      // localStorage.removeItem("userEmail"); 
-      navigate("/login");
+      logout(); 
     }, 1500);
   };
 
