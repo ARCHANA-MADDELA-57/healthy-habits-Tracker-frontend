@@ -13,6 +13,14 @@ import Analytics from "./pages/Analytics";
 import MainLayout from "./layout/MainLayout";
 import Settings from "./pages/Settings";
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('Service Worker registered!', reg))
+      .catch(err => console.err('Service Worker registration failed', err));
+  });
+}
+
 function App() {
   return (
     <BrowserRouter>
