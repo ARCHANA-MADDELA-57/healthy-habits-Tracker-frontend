@@ -1,27 +1,20 @@
 import React, { useState, useEffect, useCallback, useContext, useMemo } from "react";
 import { Bar, Doughnut } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
+import { 
+  Chart as ChartJS, CategoryScale, LinearScale, BarElement, 
+  PointElement, LineElement, Title, Tooltip, Legend, ArcElement 
 } from "chart.js";
 import { AuthContext } from "../context/AuthContext";
 import MobileNav from "../components/MobileNav";
 import WeeklySummary from "../components/WeeklySummary";
+import { calculateWeightedScore } from "./Dashboard"; // Importing the weighted logic
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 
 const Analytics = () => {
   const { user } = useContext(AuthContext);
-  const [habits, setHabits] = useState([]); // Active habits for today
-  const [history, setHistory] = useState([]); // Filtered history logs
+  const [habits, setHabits] = useState([]);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ month: "All", year: new Date().getFullYear().toString() });
 
@@ -35,9 +28,6 @@ const Analytics = () => {
         { headers: { "Authorization": `Bearer ${token}` } }
       );
       const data = await response.json();
-      
-      // Habits: Current state of active habits
-      // History: Filtered logs from DB based on selected Month/Year
       setHabits(data.habits || []);
       setHistory(data.history || []);
     } catch (err) {
@@ -53,86 +43,78 @@ const Analytics = () => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  // --- CHART DATA: CURRENT DAY ACTIVE HABITS ---
-  const activeHabitChartData = useMemo(() => ({
-    labels: habits.map(h => h.title),
-    datasets: [
-      {
-        label: "Achieved Today",
-        data: habits.map(h => h.current),
-        backgroundColor: "#6366f1",
-        borderRadius: 10,
-        barPercentage: 0.5,
-      },
-      {
-        label: "Daily Target",
-        data: habits.map(h => h.target),
-        backgroundColor: "rgba(255,255,255,0.05)",
-        borderRadius: 10,
-        barPercentage: 0.5,
-      }
-    ]
-  }), [habits]);
+  // RESTORED: Performance Sorting
+  const sortedPerformance = useMemo(() => 
+    [...habits].sort((a, b) => (b.current / b.target) - (a.current / a.target))
+  , [habits]);
 
-  // Wellness Score based on Today's active habits
-  const dailyWellnessScore = useMemo(() => {
-    if (habits.length === 0) return 0;
-    const totalProgress = habits.reduce((acc, h) => acc + (Math.min(h.current / h.target, 1)), 0);
-    return Math.round((totalProgress / habits.length) * 100);
-  }, [habits]);
+  const bestHabit = sortedPerformance[0];
+  const worstHabit = sortedPerformance[sortedPerformance.length - 1];
+
+  // UPDATED: Using the same weighted score as Dashboard
+  const wellnessScore = useMemo(() => calculateWeightedScore(habits), [habits]);
+
+  if (loading) return <div className="h-screen bg-[#0f172a] flex items-center justify-center text-white font-black italic animate-pulse">GENERATING ANALYTICS...</div>;
 
   return (
     <div className="w-full text-white p-4 md:p-8 space-y-8 bg-[#0f172a] min-h-screen">
       <MobileNav />
       
-      {/* HEADER WITH TODAY'S SCORE */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-4xl font-black italic uppercase tracking-tighter">Performance</h1>
-          <p className="text-indigo-400 font-medium tracking-wide">Real-time Daily Analysis for {user?.fullName}</p>
+          <p className="text-indigo-400 font-medium tracking-wide">Detailed Analysis for {user?.fullName}</p>
         </div>
         <div className="flex gap-4 items-center">
            <button onClick={fetchAnalyticsData} className="p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all text-xl">🔄</button>
-           <div className="bg-white/5 border border-white/10 p-4 px-8 rounded-3xl backdrop-blur-md shadow-lg border-l-4 border-l-indigo-500">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Today's Progress</p>
-              <h2 className={`text-3xl font-black ${dailyWellnessScore > 70 ? 'text-green-400' : 'text-orange-400'}`}>{dailyWellnessScore}%</h2>
+           <div className="bg-white/5 border border-white/10 p-4 px-8 rounded-3xl backdrop-blur-md shadow-lg">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Weighted Wellness</p>
+              <h2 className={`text-3xl font-black ${wellnessScore > 70 ? 'text-green-400' : 'text-orange-400'}`}>{wellnessScore}%</h2>
            </div>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* CHART: TODAY'S ACTIVE HABITS ONLY */}
-        <div className="lg:col-span-2 bg-white/5 p-8 rounded-[2.5rem] border border-white/10 backdrop-blur-sm">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                Active Habits Summary
-            </h2>
-            <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-3 py-1 rounded-full font-bold uppercase">Today</span>
+      {/* RESTORED: Best & Worst Performance Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-green-500/10 border border-green-500/20 p-6 rounded-[2rem] flex items-center justify-between">
+          <div>
+            <p className="text-green-400 text-[10px] font-black uppercase tracking-widest mb-1">Peak Performer</p>
+            <h3 className="text-xl font-bold">{bestHabit ? bestHabit.title : "N/A"}</h3>
           </div>
+          <div className="text-right">
+            <p className="text-green-400 font-black text-2xl">{bestHabit ? Math.round((bestHabit.current / bestHabit.target) * 100) : 0}%</p>
+          </div>
+        </div>
+        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-[2rem] flex items-center justify-between">
+          <div>
+            <p className="text-red-400 text-[10px] font-black uppercase tracking-widest mb-1">Needs Attention</p>
+            <h3 className="text-xl font-bold">{worstHabit ? worstHabit.title : "N/A"}</h3>
+          </div>
+          <div className="text-right">
+            <p className="text-red-400 font-black text-2xl">{worstHabit ? Math.round((worstHabit.current / worstHabit.target) * 100) : 0}%</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white/5 p-8 rounded-[2.5rem] border border-white/10 backdrop-blur-sm">
+          <h2 className="text-xl font-bold mb-8">Target vs Achieved</h2>
           <div className="h-[350px]">
-            {habits.length > 0 ? (
-              <Bar 
-                data={activeHabitChartData} 
-                options={{ 
-                  responsive: true, 
-                  maintainAspectRatio: false, 
-                  plugins: { legend: { display: false } },
-                  scales: {
-                    y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" } },
-                    x: { grid: { display: false } }
-                  }
-                }}
-              />
-            ) : (
-                <div className="h-full flex items-center justify-center text-gray-500 italic">No active habits found for today.</div>
-            )}
+            <Bar 
+              data={{
+                labels: habits.map(h => h.title),
+                datasets: [
+                  { label: "Achieved", data: habits.map(h => h.current), backgroundColor: "#6366f1", borderRadius: 8 },
+                  { label: "Target", data: habits.map(h => h.target), backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 8 }
+                ]
+              }} 
+              options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }}
+            />
           </div>
         </div>
 
-        {/* CATEGORY DOUGHNUT: BASED ON ACTIVE HABITS */}
         <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 flex flex-col items-center">
-          <h2 className="text-sm font-bold text-gray-400 mb-8 uppercase tracking-widest">Category Balance</h2>
+          <h2 className="text-sm font-bold text-gray-400 mb-8 uppercase tracking-widest text-center">Focus Area Distribution</h2>
           <div className="h-[250px] w-full">
             <Doughnut 
               data={{
@@ -144,20 +126,16 @@ const Analytics = () => {
                   cutout: '80%'
                 }]
               }}
-              options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } } }}
+              options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }}
             />
           </div>
         </div>
       </div>
 
-      {/* WEEKLY SUMMARY: THE HISTORICAL ARCHIVE WITH FILTERS */}
       <div className="bg-white/5 border border-white/10 p-10 rounded-[3rem] backdrop-blur-sm shadow-2xl">
-        <div className="flex items-center justify-between mb-10">
-            <h2 className="text-xl font-black tracking-widest uppercase italic flex items-center gap-4">
-                <div className="w-2 h-8 bg-indigo-500 rounded-full"></div> 
-                History Archive
-            </h2>
-        </div>
+        <h2 className="text-xl font-black mb-10 tracking-widest uppercase italic flex items-center gap-4">
+            <div className="w-2 h-8 bg-indigo-500 rounded-full"></div> Activity History
+        </h2>
         <WeeklySummary 
           history={history} 
           onFilterChange={handleFilterChange} 
