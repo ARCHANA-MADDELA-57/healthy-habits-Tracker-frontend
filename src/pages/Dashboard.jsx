@@ -17,6 +17,7 @@ import { healthService, fetchRealGoogleFitData } from "../services/healthService
 
 const Dashboard = () => {
   const { user, loading } = useContext(AuthContext);
+  // Pass user to useHabits so it can fetch the DB habits
   const { habits, addHabit, updateHabit, incrementProgress, decrementProgress, deleteHabit } = useHabits(user);
 
   const [quote, setQuote] = useState({ text: "Consistency is the DNA of mastery.", author: "Robin Sharma" });
@@ -46,7 +47,6 @@ const Dashboard = () => {
 
   useNotifications(neglectedHabit);
 
-  // --- GOOGLE FIT LOGIC ---
   const loginGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsSyncing(true);
@@ -59,7 +59,7 @@ const Dashboard = () => {
     scope: 'https://www.googleapis.com/auth/fitness.activity.read',
   });
 
-  if (loading) return <div className="h-screen bg-[#1a164d] flex items-center justify-center text-white">Loading...</div>;
+  if (loading) return <div className="h-screen bg-[#1a164d] flex items-center justify-center text-white">Loading Dashboard...</div>;
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-[#1a164d] via-[#2e1065] to-black text-white overflow-hidden">
@@ -67,9 +67,9 @@ const Dashboard = () => {
       <div className="hidden md:block w-64 h-full shrink-0"><Sidebar /></div>
       
       <main className="flex-1 h-full overflow-y-auto p-4 md:p-10 custom-scrollbar">
+        {/* Header now uses the real fullName from backend profile */}
         <Header userName={user?.fullName || "User"} neglectedHabit={neglectedHabit} quote={quote} />
 
-        {/* Momentum */}
         <div className="flex flex-col lg:flex-row gap-6 mb-8 items-stretch">
           <div className="flex-1"><WellnessCard score={wellnessScore} /></div>
           <div className="flex-[2] bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10">
@@ -86,7 +86,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <StatCard label="Active Habits" value={habits.length} color="text-white" />
           <StatCard label="Perfect Today" value={perfectedToday} color="text-green-400" />
@@ -101,7 +100,6 @@ const Dashboard = () => {
           <StatCard label="Sleep Hrs" value={`${syncData.sleepHours}h`} color="text-pink-400" />
         </div>
 
-        {/* Habits */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
           {habits.map((habit) => (
             <HabitCard key={habit.id} habit={habit} onIncrement={incrementProgress} onDecrement={decrementProgress} onEdit={(h) => { setEditingHabit(h); setIsOpen(true); }} onDelete={deleteHabit} />
@@ -116,7 +114,6 @@ const Dashboard = () => {
   );
 };
 
-// Helper for clean code
 const StatCard = ({ label, value, color }) => (
   <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
     <p className={`text-gray-400 text-[9px] font-bold uppercase mb-1`}>{label}</p>
