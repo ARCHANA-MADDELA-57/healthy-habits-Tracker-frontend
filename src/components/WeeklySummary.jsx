@@ -1,5 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useMemo } from "react";
 import { toast } from "react-toastify";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -11,88 +10,71 @@ const CATEGORIES = [
   { name: "Other", icon: "👤" },
 ];
 
-const WeeklySummary = ({ history, userEmail }) => {
-  const [showExportMenu, setShowExportMenu] = useState(false);
-  const menuRef = useRef(null);
+const WeeklySummary = ({ history, onFilterChange, selectedMonth, selectedYear }) => {
+  const [currentPage, setCurrentPage] = useState(0);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const years = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i).toString());
 
-  useEffect(() => {
-    const handleClickOutside = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowExportMenu(false); };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const availableYears = useMemo(() => {
-    const years = [...new Set(history.map(day => new Date(day.date).getFullYear().toString()))];
-    return years.length > 0 ? years.sort((a,b) => b-a) : [new Date().getFullYear().toString()];
+  // Group logs by date for the table rows
+  const dayWiseData = useMemo(() => {
+    const grouped = history.reduce((acc, log) => {
+      const dateKey = new Date(log.date).toDateString();
+      if (!acc[dateKey]) acc[dateKey] = { date: dateKey, logs: [] };
+      acc[dateKey].logs.push(log);
+      return acc;
+    }, {});
+    return Object.values(grouped).sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [history]);
 
-  const [currentPage, setCurrentPage] = useState(0);
-  const [selectedMonth, setSelectedMonth] = useState("All");
-  const [selectedYear, setSelectedYear] = useState(availableYears[0]);
-
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  const filteredHistory = useMemo(() => {
-    return history.filter((day) => {
-      const d = new Date(day.date);
-      const mMatch = selectedMonth === "All" || months[d.getMonth()] === selectedMonth;
-      const yMatch = d.getFullYear().toString() === selectedYear;
-      return mMatch && yMatch;
-    });
-  }, [history, selectedMonth, selectedYear]);
-
   const ITEMS_PER_PAGE = 7;
-  const totalPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE);
-  const currentLogs = filteredHistory.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(dayWiseData.length / ITEMS_PER_PAGE);
+  const currentLogs = dayWiseData.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
 
-  const exportData = (format) => {
-    const fileName = `Habit_Report_${selectedMonth}_${selectedYear}`;
-    if (format === "pdf") {
-      const doc = new jsPDF();
-      doc.text("Habit Tracking Report", 14, 20);
-      autoTable(doc, {
-        head: [["Date", ...CATEGORIES.map(c => c.name), "Progress"]],
-        body: filteredHistory.map(day => [
-          new Date(day.date).toLocaleDateString(),
-          ...CATEGORIES.map(cat => (day.logs?.find(l => l.category === cat.name)?.completed ? "Yes" : "No")),
-          `${day.progress}%`
-        ]),
-        startY: 30
-      });
-      doc.save(`${fileName}.pdf`);
+  const exportPDF = () => {
+    if (dayWiseData.length === 0) {
+      toast.error("No data to download for the selected period!");
+      return;
     }
-    // ... CSV and JSON logic remain identical to previous ...
-    toast.success(`${format.toUpperCase()} Generated!`);
+
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(`Habit Report: ${selectedMonth} ${selectedYear}`, 14, 15);
+    
+    autoTable(doc, {
+      startY: 25,
+      head: [["Date", ...CATEGORIES.map(c => c.name), "Daily Score"]],
+      body: dayWiseData.map(day => [
+        day.date,
+        ...CATEGORIES.map(cat => day.logs.some(l => l.category === cat.name && l.status === 'completed') ? "Yes" : "No"),
+        `${Math.round(day.logs.reduce((s,l) => s+l.progress, 0) / day.logs.length)}%`
+      ]),
+      headStyles: { fillColor: [79, 70, 229] }
+    });
+    doc.save(`Habit_Report_${selectedMonth}_${selectedYear}.pdf`);
   };
 
   return (
-    <div className="w-full space-y-6 pb-10">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-5 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-sm relative z-50">
-        <div className="flex items-center gap-3">
-          <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-[#1e1b4b] text-white text-sm rounded-xl px-4 py-2">
+    <div className="w-full space-y-6">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-5 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={selectedYear} onChange={(e) => onFilterChange('year', e.target.value)} className="bg-[#1e1b4b] text-white text-xs rounded-xl px-4 py-2 border border-white/10">
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+
+          <select value={selectedMonth} onChange={(e) => onFilterChange('month', e.target.value)} className="bg-[#1e1b4b] text-white text-xs rounded-xl px-4 py-2 border border-white/10">
             <option value="All">All Months</option>
             {months.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-          <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-[#1e1b4b] text-white text-sm rounded-xl px-4 py-2">
-            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <button onClick={() => setShowExportMenu(!showExportMenu)} className="bg-indigo-600 p-2 px-4 rounded-xl text-xs font-bold">📥 Export</button>
-          
-          <AnimatePresence>
-            {showExportMenu && (
-              <motion.div ref={menuRef} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full mt-2 bg-[#2e2a75] border border-white/20 rounded-2xl shadow-2xl z-[100] overflow-hidden">
-                {['pdf', 'csv', 'json'].map(fmt => (
-                  <button key={fmt} onClick={() => exportData(fmt)} className="w-full text-left px-5 py-3 hover:bg-white/10 text-xs font-bold uppercase">{fmt}</button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+
+          <button onClick={exportPDF} className="bg-indigo-600 hover:bg-indigo-500 p-2 px-6 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">
+            📥 Export PDF
+          </button>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className="p-2 disabled:opacity-20">◀</button>
-          <span className="text-sm font-bold">{currentPage + 1} / {totalPages || 1}</span>
-          <button disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)} className="p-2 disabled:opacity-20">▶</button>
+        <div className="flex items-center gap-4 text-xs font-bold">
+          <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className="disabled:opacity-20 text-indigo-400 uppercase">Prev</button>
+          <span className="bg-white/10 px-3 py-1 rounded-lg">{currentPage + 1} / {totalPages || 1}</span>
+          <button disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)} className="disabled:opacity-20 text-indigo-400 uppercase">Next</button>
         </div>
       </div>
 
@@ -101,24 +83,33 @@ const WeeklySummary = ({ history, userEmail }) => {
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="bg-white/5">
-                <th className="p-6 text-[10px] font-black text-indigo-300 uppercase tracking-widest">Date</th>
+                <th className="p-6 text-[10px] font-black text-indigo-300 uppercase">Date</th>
                 {CATEGORIES.map(cat => <th key={cat.name} className="p-6 text-center text-[9px] font-bold text-gray-400 uppercase">{cat.icon} {cat.name}</th>)}
-                <th className="p-6 text-center text-[10px] font-black text-indigo-300 uppercase">Progress</th>
+                <th className="p-6 text-center text-[10px] font-black text-indigo-300 uppercase">Score</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {currentLogs.map((day) => (
-                <tr key={day.id} className="hover:bg-white/[0.03]">
-                  <td className="p-6 font-bold">{new Date(day.date).toDateString()}</td>
+              {dayWiseData.length > 0 ? currentLogs.map((day, idx) => (
+                <tr key={idx} className="hover:bg-white/[0.03] transition-colors">
+                  <td className="p-6 font-bold text-[11px] whitespace-nowrap uppercase text-gray-300">{day.date}</td>
                   {CATEGORIES.map(cat => (
-                    <td key={cat.name} className="p-6 text-center">
-                      {/* Note: Adjust 'day.logs' to match your Supabase schema keys */}
-                      {day.logs?.find(l => l.category === cat.name)?.completed ? "✅" : "❌"}
+                    <td key={cat.name} className="p-6 text-center text-xl">
+                      {day.logs.some(l => l.category === cat.name && l.status === 'completed') ? "✅" : "❌"}
                     </td>
                   ))}
-                  <td className="p-6 text-center"><span className="bg-indigo-500/20 text-indigo-400 px-3 py-1 rounded-full text-xs font-bold">{day.progress}%</span></td>
+                  <td className="p-6 text-center">
+                    <span className="bg-indigo-500/20 text-indigo-400 px-3 py-1 rounded-full text-[10px] font-black">
+                        {Math.round(day.logs.reduce((s,l) => s+l.progress, 0) / day.logs.length)}%
+                    </span>
+                  </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan={CATEGORIES.length + 2} className="p-20 text-center text-gray-500 font-bold uppercase tracking-widest text-xs">
+                    No activity recorded for {selectedMonth} {selectedYear}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
