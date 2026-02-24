@@ -5,8 +5,6 @@ import { toast } from "react-toastify";
 export const useHabits = (user) => {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Get the token stored during login
   const token = localStorage.getItem("token"); 
 
   const fetchHabits = useCallback(async () => {
@@ -38,37 +36,28 @@ export const useHabits = (user) => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}` 
         },
-        // Change 'isEveryday' to 'is_everyday' to match Supabase/Backend expectation
         body: JSON.stringify({ 
           title, 
           description, 
-          target: Number(target), // Ensure this is a number
+          target: Number(target), 
           category, 
           is_everyday: isEveryday, 
           unit 
         })
       });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Backend Error Details:", errorData);
-        return;
-      }
-  
-      // Refresh the habits list after successful add
-      fetchHabits(); 
+      if (response.ok) fetchHabits(); 
     } catch (err) {
-      console.error("Fetch Error:", err);
+      console.error(err);
     }
   };
 
   const incrementProgress = async (id) => {
-    // Optimistic UI update for smoothness
+    // Optimistic UI update
     setHabits(prev => prev.map(h => {
       if (h.id === id && h.current < h.target) {
         const newCount = h.current + 1;
         if (newCount === h.target) confetti({ particleCount: 150, spread: 70 });
-        return { ...h, current: newCount };
+        return { ...h, current: newCount, completed_today: newCount >= h.target };
       }
       return h;
     }));
@@ -78,35 +67,12 @@ export const useHabits = (user) => {
         method: "PATCH",
         headers: { "Authorization": `Bearer ${token}` }
       });
+      fetchHabits(); // Re-sync to get correct streak/completed status from DB
     } catch (err) {
-      fetchHabits(); // Rollback on error
+      fetchHabits();
     }
   };
 
-  const deleteHabit = async (id) => {
-    const response = await fetch(`http://localhost:5000/api/habits/${id}`, {
-      method: "DELETE",
-      headers: { "Authorization": `Bearer ${token}` }
-    });
-    if (response.ok) fetchHabits(); // Refresh the UI
-  };
-
-  const updateHabit = async (id, title, description, target, category, isEveryday, unit) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/habits/update/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ title, description, target, category, isEveryday, unit })
-      });
-      if (response.ok) fetchHabits();
-    } catch (err) {
-      toast.error("Update failed");
-    }
-  };
-  
   const decrementProgress = async (id) => {
     try {
       const response = await fetch(`http://localhost:5000/api/habits/decrement/${id}`, {
@@ -119,6 +85,36 @@ export const useHabits = (user) => {
     }
   };
 
-  // Note: Add updateHabit and decrementProgress following the same pattern
+  const updateHabit = async (id, title, description, target, category, isEveryday, unit) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/habits/update/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          title, 
+          description, 
+          target: Number(target), 
+          category, 
+          is_everyday: isEveryday, 
+          unit 
+        })
+      });
+      if (response.ok) fetchHabits();
+    } catch (err) {
+      toast.error("Update failed");
+    }
+  };
+
+  const deleteHabit = async (id) => {
+    const response = await fetch(`http://localhost:5000/api/habits/${id}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (response.ok) fetchHabits();
+  };
+
   return { habits, loading, addHabit, incrementProgress, deleteHabit, updateHabit, decrementProgress };
 };

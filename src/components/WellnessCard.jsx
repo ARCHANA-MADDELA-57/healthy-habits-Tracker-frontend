@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "framer-motion";
 
 const WellnessCard = ({ score }) => {
@@ -19,11 +20,7 @@ const WellnessCard = ({ score }) => {
             animate={{ strokeDashoffset: 176 - (176 * score) / 100 }}
             transition={{ duration: 1.5 }}
             className={`${getScoreColor()}`}
-            strokeWidth="4" 
-            strokeDasharray={176} 
-            strokeLinecap="round" 
-            fill="transparent" 
-            r="28" cx="32" cy="32" 
+            strokeWidth="4" strokeDasharray={176} strokeLinecap="round" fill="transparent" r="28" cx="32" cy="32" 
           />
         </svg>
         <span className="absolute text-sm font-black">{score}%</span>
