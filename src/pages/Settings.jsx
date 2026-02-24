@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import MobileNav from "../components/MobileNav";
 import { Bell, BellOff, RefreshCw, Smartphone } from "lucide-react"; 
 import { useGoogleLogin } from '@react-oauth/google';
-// Ensure you have fetchRealGoogleFitData exported from your healthService
 import { healthService, fetchRealGoogleFitData } from '../services/healthService';
+import { AuthContext } from "../context/AuthContext"; // Import your context
 
 const Settings = () => {
-  const [user, setUser] = useState({ fullName: "", email: "" });
+  const { user: authUser, updateUserState } = useContext(AuthContext);
+  const [fullName, setFullName] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Health Sync States
   const [healthData, setHealthData] = useState(healthService.fetchData());
@@ -18,22 +20,18 @@ const Settings = () => {
     localStorage.getItem("notificationsEnabled") === "true"
   );
 
+  // Sync local state with AuthContext user
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("registeredUser"));
-    if (storedUser) {
-      setUser({
-        fullName: storedUser.fullName || "User",
-        email: storedUser.email || "",
-      });
+    if (authUser) {
+      setFullName(authUser.fullName || "");
     }
-  }, []);
+  }, [authUser]);
 
   // REAL GOOGLE SYNC LOGIC
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsSyncing(true);
       try {
-        // Use the access_token directly
         const realData = await fetchRealGoogleFitData(tokenResponse.access_token);
         const updated = healthService.syncData(realData);
         setHealthData(updated);
@@ -43,7 +41,6 @@ const Settings = () => {
         setIsSyncing(false);
       }
     },
-    // Ensure the scope matches what you set in Google Cloud
     scope: 'https://www.googleapis.com/auth/fitness.activity.read',
     flow: 'implicit', 
   });
@@ -57,13 +54,37 @@ const Settings = () => {
     }
   };
 
-  const handleUpdateProfile = (e) => {
+  const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    const storedUser = JSON.parse(localStorage.getItem("registeredUser"));
-    const updatedUser = { ...storedUser, fullName: user.fullName };
-    localStorage.setItem("registeredUser", JSON.stringify(updatedUser));
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+    setIsUpdating(true);
+    
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/auth/update-profile", { // Check this URL!
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ fullName })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update the Global Context so other components see the new name
+        updateUserState(data.user);
+        setIsSaved(true);
+        setTimeout(() => setIsSaved(false), 3000);
+      } else {
+        alert(data.error || "Failed to update profile");
+      }
+    } catch (err) {
+      console.error("Update error:", err);
+      alert("An error occurred while updating profile");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -84,8 +105,8 @@ const Settings = () => {
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Full Name</label>
                 <input
                   type="text"
-                  value={user.fullName}
-                  onChange={(e) => setUser({ ...user, fullName: e.target.value })}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 transition-all"
                 />
               </div>
@@ -93,19 +114,23 @@ const Settings = () => {
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Email (Read Only)</label>
                 <input
                   type="email"
-                  value={user.email}
+                  value={authUser?.email || ""}
                   disabled
                   className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
                 />
               </div>
             </div>
-            <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20">
-              {isSaved ? "✅ Changes Saved" : "Save Changes"}
+            <button 
+                type="submit" 
+                disabled={isUpdating}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+            >
+              {isUpdating ? "Saving..." : isSaved ? "✅ Changes Saved" : "Save Changes"}
             </button>
           </form>
         </section>
 
-        {/* Health Sync Section - Updated to use login() */}
+        {/* Health Sync Section */}
         <section className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 shadow-2xl">
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">⌚ Device Integrations</h2>
           <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-black/20 rounded-2xl border border-white/5 gap-6">
@@ -169,7 +194,7 @@ const Settings = () => {
         <section className="bg-red-500/5 backdrop-blur-md p-8 rounded-[2rem] border border-red-500/20 shadow-2xl">
           <h2 className="text-xl font-semibold text-red-400 mb-2">🛑 Danger Zone</h2>
           <p className="text-gray-400 text-sm mb-6">Resetting your data will clear all progress.</p>
-          <button onClick={() => { if (window.confirm("Are you sure?")) { localStorage.removeItem(`habits_${user.email}`); window.location.reload(); } }} className="border border-red-500/50 hover:bg-red-500/10 text-red-500 px-6 py-2 rounded-xl text-xs font-bold uppercase transition-all">Clear All Habit Progress</button>
+          <button onClick={() => { if (window.confirm("Are you sure?")) { localStorage.removeItem(`habits_${authUser?.email}`); window.location.reload(); } }} className="border border-red-500/50 hover:bg-red-500/10 text-red-500 px-6 py-2 rounded-xl text-xs font-bold uppercase transition-all">Clear All Habit Progress</button>
         </section>
       </div>
     </div>

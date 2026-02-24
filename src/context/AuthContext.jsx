@@ -6,6 +6,11 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const updateUserState = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  };
+
   const fetchUserProfile = async (token) => {
     try {
       const response = await fetch("http://localhost:5000/api/auth/me", {
@@ -55,7 +60,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, updateUserState }}>
       {!loading && children}
     </AuthContext.Provider>
   );
