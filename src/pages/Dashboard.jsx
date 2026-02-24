@@ -15,7 +15,7 @@ import { useHabits } from "../hooks/useHabits";
 import { useNotifications } from "../hooks/useNotifications";
 import { healthService, fetchRealGoogleFitData } from "../services/healthService";
 
-// WEIGHTED LOGIC (Updated Weights)
+// WEIGHTED LOGIC
 export const calculateWeightedScore = (habitList) => {
   if (!habitList || habitList.length === 0) return 0;
   const weights = { 
@@ -78,7 +78,7 @@ const Dashboard = () => {
     scope: 'https://www.googleapis.com/auth/fitness.activity.read',
   });
 
-  if (loading) return <div className="h-screen bg-[#1a164d] flex items-center justify-center text-white">Loading Dashboard...</div>;
+  if (loading) return <div className="h-screen bg-[#1a164d] flex items-center justify-center text-white font-black italic">CALIBRATING SYSTEM...</div>;
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-[#1a164d] via-[#2e1065] to-black text-white overflow-hidden">
@@ -95,10 +95,10 @@ const Dashboard = () => {
           <div className="flex-[2] bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10">
             <div className="flex justify-between items-end mb-4">
               <div>
-                <h2 className="text-xs font-black uppercase tracking-widest text-indigo-400">Daily Momentum</h2>
-                <p className="text-2xl font-black">{wellnessScore}%</p>
+                <h2 className="text-xs font-black uppercase tracking-widest text-indigo-400 italic">Daily Momentum</h2>
+                <p className="text-2xl font-black italic">{wellnessScore}%</p>
               </div>
-              <p className="text-gray-400 text-xs font-bold">{perfectedToday} / {habits.length} Done</p>
+              <p className="text-gray-400 text-xs font-bold uppercase">{perfectedToday} / {habits.length} Optimized</p>
             </div>
             <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden">
               <motion.div animate={{ width: `${wellnessScore}%` }} className={`h-full ${wellnessScore < 40 ? "bg-red-500" : "bg-gradient-to-r from-indigo-500 to-pink-500"}`} />
@@ -115,19 +115,28 @@ const Dashboard = () => {
               <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
             </button>
             <p className="text-indigo-400 text-[9px] font-bold uppercase mb-1">Synced Steps</p>
-            <h3 className="text-2xl font-black">{syncData.steps.toLocaleString()}</h3>
+            <h3 className="text-2xl font-black italic">{syncData.steps.toLocaleString()}</h3>
           </div>
           <StatCard label="Sleep Hrs" value={`${syncData.sleepHours}h`} color="text-pink-400" />
         </div>
 
+        {/* Habit Grid with targeting IDs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
           {habits.map((habit) => (
-            <HabitCard key={habit.id} habit={habit} onIncrement={incrementProgress} onDecrement={decrementProgress} onEdit={(h) => { setEditingHabit(h); setIsOpen(true); }} onDelete={deleteHabit} />
+            <div key={habit.id} id={`habit-${habit.id}`} className="transition-all duration-500">
+              <HabitCard 
+                habit={habit} 
+                onIncrement={incrementProgress} 
+                onDecrement={decrementProgress} 
+                onEdit={(h) => { setEditingHabit(h); setIsOpen(true); }} 
+                onDelete={deleteHabit} 
+              />
+            </div>
           ))}
         </div>
       </main>
 
-      <button onClick={() => { setEditingHabit(null); setIsOpen(true); }} className="fixed bottom-6 right-6 bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-2xl z-50 hover:bg-indigo-500 transition-transform active:scale-90">+</button>
+      <button onClick={() => { setEditingHabit(null); setIsOpen(true); }} className="fixed bottom-6 right-6 bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-2xl z-50 hover:bg-indigo-500 transition-transform active:scale-90 shadow-indigo-500/20">+</button>
       <AddHabitModal isOpen={isOpen} onClose={() => { setIsOpen(false); setEditingHabit(null); }} onAdd={addHabit} onUpdate={updateHabit} editingHabit={editingHabit} />
     </div>
   );
@@ -136,7 +145,7 @@ const Dashboard = () => {
 const StatCard = ({ label, value, color }) => (
   <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
     <p className={`text-gray-400 text-[9px] font-bold uppercase mb-1`}>{label}</p>
-    <h3 className={`text-2xl font-black ${color}`}>{value}</h3>
+    <h3 className={`text-2xl font-black italic ${color}`}>{value}</h3>
   </div>
 );
 
