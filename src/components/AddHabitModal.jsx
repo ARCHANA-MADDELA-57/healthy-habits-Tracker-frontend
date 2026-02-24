@@ -9,7 +9,7 @@ const CATEGORIES = [
   { name: "Meditation", icon: "🧘", defaultUnit: "mins" },
   { name: "Nutrition", icon: "🥗", defaultUnit: "servings" },
   { name: "Study", icon: "📚", defaultUnit: "hrs" },
-  { name: "Other", icon: "👤", defaultUnit: "units" }, // Added Other
+  { name: "Other", icon: "👤", defaultUnit: "units" },
 ];
 
 const UNIT_OPTIONS = ["mins", "hrs", "liters", "glasses", "pages", "steps", "servings", "km", "miles", "units"];
@@ -37,7 +37,8 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
         setTarget(editingHabit.target || 1);
         setCategory(editingHabit.category || "Fitness");
         setUnit(editingHabit.unit || "mins");
-        setIsEveryday(editingHabit.isEveryday || false);
+        // FIX: Look for is_everyday from DB response to keep checkbox checked
+        setIsEveryday(editingHabit.is_everyday || false); 
       } else {
         setTitle(""); setDescription(""); setTarget(1);
         setCategory("Fitness"); setUnit("mins"); setIsEveryday(false);
@@ -61,7 +62,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
     setIsCatOpen(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim()) {
       toast.warn("Please give your habit a name!");
@@ -69,17 +70,23 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
     }
 
     setStatus("saving");
-    setTimeout(() => {
+    
+    try {
       if (editingHabit) {
-        onUpdate(editingHabit.id, title, description, target, category, isEveryday, unit);
+        // onUpdate calls the backend via useHabits hook
+        await onUpdate(editingHabit.id, title, description, target, category, isEveryday, unit);
         toast.success("Habit updated successfully!");
       } else {
-        onAdd(title, description, target, category, isEveryday, unit);
+        await onAdd(title, description, target, category, isEveryday, unit);
         toast.success(`${title} added to your routine!`);
       }
+      
       setStatus("success");
       setTimeout(() => onClose(), 800);
-    }, 1000);
+    } catch (error) {
+      setStatus("idle");
+      toast.error("Something went wrong. Please try again.");
+    }
   };
 
   if (!isOpen) return null;
@@ -105,7 +112,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, onUpdate, editingHabit }) => {
             <label className="text-[10px] font-black text-indigo-300 uppercase tracking-widest ml-1">Habit Name</label>
             <input 
               type="text" 
-              placeholder="e.g. Early Morning Yoga" // Placeholder added
+              placeholder="e.g. Early Morning Yoga"
               className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mt-2 outline-none focus:border-indigo-500 placeholder:text-white/20" 
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 

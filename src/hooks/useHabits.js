@@ -1,129 +1,124 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import confetti from "canvas-confetti";
+import { toast } from "react-toastify";
 
-export const useHabits = (userKey) => {
+export const useHabits = (user) => {
   const [habits, setHabits] = useState([]);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Get the token stored during login
+  const token = localStorage.getItem("token"); 
 
-  useEffect(() => {
-    if (!userKey) return;
-    const today = new Date().toDateString();
-    const lastVisit = localStorage.getItem(`${userKey}_lastVisit`);
-    const storedHabits = JSON.parse(localStorage.getItem(userKey)) || [];
-    const historyKey = `${userKey}_history`;
-
-    if (lastVisit && lastVisit !== today) {
-      const currentHistory = JSON.parse(localStorage.getItem(historyKey)) || [];
-      const yesterdayRecord = {
-        date: lastVisit,
-        habits: storedHabits.map((h) => ({
-          title: h.title,
-          category: h.category,
-          completed: Number(h.current) >= Number(h.target), 
-          score: `${h.current}/${h.target}`,
-        })),
-      };
-
-      if (!currentHistory.find(item => item.date === lastVisit)) {
-        const updatedHistory = [yesterdayRecord, ...currentHistory].slice(0, 30); // Store up to 30 days
-        localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+  const fetchHabits = useCallback(async () => {
+    if (!user) return;
+    try {
+      const response = await fetch("http://localhost:5000/api/habits/my-habits", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setHabits(data);
       }
-
-      const newDayHabits = storedHabits
-        .filter((h) => h.isEveryday === true)
-        .map((h) => ({ 
-            ...h, 
-            current: 0, 
-            completedToday: false,
-            streak: h.current >= h.target ? h.streak : 0 
-        }));
-
-      localStorage.setItem(userKey, JSON.stringify(newDayHabits));
-      localStorage.setItem(`${userKey}_lastVisit`, today);
-      setHabits(newDayHabits);
-    } else {
-      setHabits(storedHabits);
-      if (!lastVisit) localStorage.setItem(`${userKey}_lastVisit`, today);
+    } catch (err) {
+      console.error("Failed to fetch habits:", err);
+    } finally {
+      setLoading(false);
     }
-    setIsDataLoaded(true);
-  }, [userKey]);
+  }, [user, token]);
 
   useEffect(() => {
-    if (isDataLoaded && userKey) {
-      localStorage.setItem(userKey, JSON.stringify(habits));
+    fetchHabits();
+  }, [fetchHabits]);
+
+  const addHabit = async (title, description, target, category, isEveryday, unit) => {
+    try {
+      const response = await fetch("http://localhost:5000/api/habits/add", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        },
+        // Change 'isEveryday' to 'is_everyday' to match Supabase/Backend expectation
+        body: JSON.stringify({ 
+          title, 
+          description, 
+          target: Number(target), // Ensure this is a number
+          category, 
+          is_everyday: isEveryday, 
+          unit 
+        })
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Backend Error Details:", errorData);
+        return;
+      }
+  
+      // Refresh the habits list after successful add
+      fetchHabits(); 
+    } catch (err) {
+      console.error("Fetch Error:", err);
     }
-  }, [habits, userKey, isDataLoaded]);
+  };
 
-  const addHabit = (title, description, target, category, isEveryday, unit) => {
-    const newHabit = {
-      id: Date.now(),
-      title,
-      description,
-      target: parseInt(target) || 1,
-      unit: unit || "units",
-      category: category || "Other",
-      current: 0,
-      streak: 0,
-      completedToday: false,
-      isEveryday: !!isEveryday,
-    };
-    setHabits((prev) => [...prev, newHabit]);
+  const incrementProgress = async (id) => {
+    // Optimistic UI update for smoothness
+    setHabits(prev => prev.map(h => {
+      if (h.id === id && h.current < h.target) {
+        const newCount = h.current + 1;
+        if (newCount === h.target) confetti({ particleCount: 150, spread: 70 });
+        return { ...h, current: newCount };
+      }
+      return h;
+    }));
+
+    try {
+      await fetch(`http://localhost:5000/api/habits/increment/${id}`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+    } catch (err) {
+      fetchHabits(); // Rollback on error
+    }
+  };
+
+  const deleteHabit = async (id) => {
+    const response = await fetch(`http://localhost:5000/api/habits/${id}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (response.ok) fetchHabits(); // Refresh the UI
+  };
+
+  const updateHabit = async (id, title, description, target, category, isEveryday, unit) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/habits/update/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, description, target, category, isEveryday, unit })
+      });
+      if (response.ok) fetchHabits();
+    } catch (err) {
+      toast.error("Update failed");
+    }
   };
   
-  const updateHabit = (id, title, description, target, category, isEveryday, unit) => {
-    setHabits((prev) =>
-      prev.map((h) =>
-        h.id === id
-          ? { ...h, title, description, target: parseInt(target), category, isEveryday: !!isEveryday, unit: unit || h.unit }
-          : h
-      )
-    );
+  const decrementProgress = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/habits/decrement/${id}`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) fetchHabits();
+    } catch (err) {
+      toast.error("Failed to decrement");
+    }
   };
 
-  const incrementProgress = (id) => {
-    setHabits((prev) =>
-      prev.map((h) => {
-        if (h.id === id) {
-          if (h.current >= h.target) return h;
-          const nextCount = h.current + 1;
-          const reachedGoal = nextCount === h.target;
-          if (reachedGoal) {
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#ec4899', '#22c55e'] });
-          }
-          return {
-            ...h,
-            current: nextCount,
-            streak: reachedGoal && !h.completedToday ? h.streak + 1 : h.streak,
-            completedToday: nextCount >= h.target,
-          };
-        }
-        return h;
-      })
-    );
-  };
-  
-  const decrementProgress = (id) => {
-    setHabits((prev) =>
-      prev.map((h) => {
-        if (h.id === id && h.current > 0) {
-          const nextCount = h.current - 1;
-          const wasCompleted = h.current >= h.target;
-          const isNowIncomplete = nextCount < h.target;
-          return {
-            ...h,
-            current: nextCount,
-            streak: (wasCompleted && isNowIncomplete) ? Math.max(0, h.streak - 1) : h.streak,
-            completedToday: nextCount >= h.target,
-          };
-        }
-        return h;
-      })
-    );
-  };
-
-  const deleteHabit = (id) => {
-    setHabits((prev) => prev.filter((h) => h.id !== id));
-  };
-
-  return { habits, addHabit, updateHabit, incrementProgress, decrementProgress, deleteHabit };
+  // Note: Add updateHabit and decrementProgress following the same pattern
+  return { habits, loading, addHabit, incrementProgress, deleteHabit, updateHabit, decrementProgress };
 };
