@@ -5,13 +5,18 @@ import { toast } from "react-toastify";
 export const useHabits = (user) => {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token"); 
+
+  // Helper to get fresh token every time a request is made
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? { "Authorization": `Bearer ${token}` } : {};
+  };
 
   const fetchHabits = useCallback(async () => {
     if (!user) return;
     try {
       const response = await fetch("http://localhost:5000/api/habits/my-habits", {
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: getAuthHeader()
       });
       const data = await response.json();
       if (response.ok) {
@@ -22,7 +27,7 @@ export const useHabits = (user) => {
     } finally {
       setLoading(false);
     }
-  }, [user, token]);
+  }, [user]);
 
   useEffect(() => {
     fetchHabits();
@@ -34,7 +39,7 @@ export const useHabits = (user) => {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` 
+          ...getAuthHeader()
         },
         body: JSON.stringify({ 
           title, 
@@ -45,9 +50,17 @@ export const useHabits = (user) => {
           unit 
         })
       });
-      if (response.ok) fetchHabits(); 
+      
+      if (response.ok) {
+        toast.success("Habit added successfully!");
+        fetchHabits(); // This triggers the re-sync
+      } else {
+        const errData = await response.json();
+        toast.error(errData.message || "Failed to add habit");
+      }
     } catch (err) {
       console.error(err);
+      toast.error("Server error while adding habit");
     }
   };
 
@@ -65,9 +78,9 @@ export const useHabits = (user) => {
     try {
       await fetch(`http://localhost:5000/api/habits/increment/${id}`, {
         method: "PATCH",
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: getAuthHeader()
       });
-      fetchHabits(); // Re-sync to get correct streak/completed status from DB
+      fetchHabits(); 
     } catch (err) {
       fetchHabits();
     }
@@ -77,7 +90,7 @@ export const useHabits = (user) => {
     try {
       const response = await fetch(`http://localhost:5000/api/habits/decrement/${id}`, {
         method: "PATCH",
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: getAuthHeader()
       });
       if (response.ok) fetchHabits();
     } catch (err) {
@@ -91,7 +104,7 @@ export const useHabits = (user) => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          ...getAuthHeader()
         },
         body: JSON.stringify({ 
           title, 
@@ -102,19 +115,32 @@ export const useHabits = (user) => {
           unit 
         })
       });
-      if (response.ok) fetchHabits();
+      if (response.ok) {
+        toast.success("Habit updated!");
+        fetchHabits();
+      }
     } catch (err) {
       toast.error("Update failed");
     }
   };
 
   const deleteHabit = async (id) => {
-    const response = await fetch(`http://localhost:5000/api/habits/${id}`, {
-      method: "DELETE",
-      headers: { "Authorization": `Bearer ${token}` }
-    });
-    if (response.ok) fetchHabits();
+    // Optimistic Delete
+    const previousHabits = [...habits];
+    setHabits(prev => prev.filter(h => h.id !== id));
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/habits/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeader()
+      });
+      if (!response.ok) throw new Error();
+      toast.info("Habit deleted");
+    } catch (err) {
+      setHabits(previousHabits); // Rollback if server fails
+      toast.error("Could not delete habit");
+    }
   };
 
-  return { habits, loading, addHabit, incrementProgress, deleteHabit, updateHabit, decrementProgress };
+  return { habits, loading, addHabit, incrementProgress, deleteHabit, updateHabit, decrementProgress, refreshHabits: fetchHabits };
 };
