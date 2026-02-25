@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { RefreshCw, AlertTriangle } from "lucide-react";
+import { RefreshCw, Trophy, Flame, Star } from "lucide-react"; // Added icons
 import { useGoogleLogin } from '@react-oauth/google';
 import { AuthContext } from "../context/AuthContext";
 
@@ -31,6 +31,39 @@ export const calculateWeightedScore = (habitList) => {
     totalPossibleWeight += weight;
   });
   return Math.round((totalWeightedProgress / totalPossibleWeight) * 100);
+};
+
+// NEW: MILESTONE COMPONENT
+const StreakMilestone = ({ streak }) => {
+  const milestone = useMemo(() => {
+    if (streak >= 30) return { 
+      icon: <Trophy className="text-yellow-400" />, 
+      label: "GOD MODE: 30+ DAYS", 
+      color: "border-yellow-500/50 bg-yellow-500/10 text-yellow-500" 
+    };
+    if (streak >= 7) return { 
+      icon: <Flame className="text-orange-400" />, 
+      label: "WEEKLY WARRIOR: 7+ DAYS", 
+      color: "border-orange-500/50 bg-orange-500/10 text-orange-500" 
+    };
+    return null;
+  }, [streak]);
+
+  if (!milestone) return null;
+
+  return (
+    <motion.div 
+      initial={{ x: -20, opacity: 0 }} 
+      animate={{ x: 0, opacity: 1 }}
+      className={`mb-6 p-4 rounded-2xl border flex items-center gap-3 ${milestone.color}`}
+    >
+      <div className="p-2 bg-black/20 rounded-lg">{milestone.icon}</div>
+      <div>
+        <h4 className="font-black text-[10px] uppercase tracking-[0.2em]">{milestone.label}</h4>
+        <p className="text-xs opacity-80 italic">Your momentum is statistically unstoppable right now.</p>
+      </div>
+    </motion.div>
+  );
 };
 
 const WellnessAlert = ({ score }) => {
@@ -88,6 +121,7 @@ const Dashboard = () => {
       <main className="flex-1 h-full overflow-y-auto p-4 md:p-10 custom-scrollbar">
         <Header userName={user?.fullName || "User"} neglectedHabit={neglectedHabit} quote={quote} />
 
+        <StreakMilestone streak={bestStreak} />
         <WellnessAlert score={wellnessScore} />
 
         <div className="flex flex-col lg:flex-row gap-6 mb-8 items-stretch">
@@ -120,51 +154,32 @@ const Dashboard = () => {
           <StatCard label="Sleep Hrs" value={`${syncData.sleepHours}h`} color="text-pink-400" />
         </div>
 
-        {/* Habit Grid with targeting IDs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
-  {habits.length > 0 ? (
-    habits.map((habit) => (
-      <div key={habit.id} id={`habit-${habit.id}`} className="transition-all duration-500">
-        <HabitCard 
-          habit={habit} 
-          onIncrement={incrementProgress} 
-          onDecrement={decrementProgress} 
-          onEdit={(h) => { setEditingHabit(h); setIsOpen(true); }} 
-          onDelete={deleteHabit} 
-        />
-      </div>
-    ))
-  ) : (
-    /* ENHANCED EMPTY STATE */
-    <div className="col-span-full py-16 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-3xl bg-white/5 backdrop-blur-sm">
-      <motion.div 
-        initial={{ scale: 0.8, opacity: 0 }} 
-        animate={{ scale: 1, opacity: 1 }}
-        className="w-20 h-20 bg-indigo-600/10 rounded-full flex items-center justify-center mb-6"
-      >
-        <span className="text-4xl">🚀</span>
-      </motion.div>
-      
-      <h3 className="text-2xl font-black italic text-white mb-2">Systems Offline</h3>
-      <p className="text-gray-400 text-sm mb-8 max-w-xs text-center px-4">
-        No active habits detected in your momentum engine. Calibrate your first habit to begin.
-      </p>
-
-      <motion.button 
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => { setEditingHabit(null); setIsOpen(true); }}
-        className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-black italic uppercase tracking-widest text-sm shadow-xl shadow-indigo-500/20 transition-all"
-      >
-        + Initialize Habit
-      </motion.button>
-
-      <p className="mt-4 text-[10px] text-gray-500 uppercase font-bold tracking-[0.2em]">
-        Or use the floating trigger below
-      </p>
-    </div>
-  )}
-</div>
+          {habits.length > 0 ? (
+            habits.map((habit) => (
+              <div key={habit.id} id={`habit-${habit.id}`} className="transition-all duration-500">
+                <HabitCard 
+                  habit={habit} 
+                  onIncrement={incrementProgress} 
+                  onDecrement={decrementProgress} 
+                  onEdit={(h) => { setEditingHabit(h); setIsOpen(true); }} 
+                  onDelete={deleteHabit} 
+                />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full py-16 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-3xl bg-white/5 backdrop-blur-sm">
+              <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-20 h-20 bg-indigo-600/10 rounded-full flex items-center justify-center mb-6">
+                <span className="text-4xl">🚀</span>
+              </motion.div>
+              <h3 className="text-2xl font-black italic text-white mb-2">Systems Offline</h3>
+              <p className="text-gray-400 text-sm mb-8 max-w-xs text-center px-4">No active habits detected. Calibrate your first habit to begin.</p>
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { setEditingHabit(null); setIsOpen(true); }} className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-black italic uppercase tracking-widest text-sm shadow-xl shadow-indigo-500/20 transition-all">
+                + Initialize Habit
+              </motion.button>
+            </div>
+          )}
+        </div>
       </main>
 
       <button onClick={() => { setEditingHabit(null); setIsOpen(true); }} className="fixed bottom-6 right-6 bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-2xl z-50 hover:bg-indigo-500 transition-transform active:scale-90 shadow-indigo-500/20">+</button>

@@ -1,20 +1,56 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { toast } from "react-toastify";
+import confetti from "canvas-confetti";
 
 const HabitCard = ({ habit, onIncrement, onDecrement, onEdit, onDelete }) => {
-  // Syncing logic with DB columns
   const progress = (Number(habit.current) / Number(habit.target)) * 100;
   const isCompleted = habit.completed_today === true || Number(habit.current) >= Number(habit.target);
+  
+  // Track previous streak to trigger confetti only when it increases
+  const prevStreakRef = useRef(habit.streak);
+
+  useEffect(() => {
+    // Trigger if streak moves from 6 -> 7 or 29 -> 30
+    if (habit.streak > prevStreakRef.current) {
+      if (habit.streak === 7) {
+        triggerConfetti("#6366f1"); // Indigo burst
+      } else if (habit.streak === 30) {
+        triggerConfetti("#f59e0b", 2); // Gold double burst
+      }
+    }
+    prevStreakRef.current = habit.streak;
+  }, [habit.streak]);
+
+  const triggerConfetti = (color, scalar = 1) => {
+    confetti({
+      particleCount: 100 * scalar,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: [color, "#ffffff"],
+      zIndex: 999
+    });
+  };
+
+  const getMilestoneStyle = () => {
+    if (habit.streak >= 30) return "from-yellow-500 to-amber-600 shadow-yellow-500/20";
+    if (habit.streak >= 7) return "from-indigo-500 to-purple-600 shadow-indigo-500/20";
+    return "from-orange-500 to-red-600 shadow-orange-500/20";
+  };
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
       className={`relative group bg-white/5 backdrop-blur-md border ${isCompleted ? "border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.1)]" : "border-white/10"} p-6 rounded-[2.5rem] hover:bg-white/10 transition-all duration-300`}
     >
       {habit.streak > 0 && (
-        <div className="absolute -top-3 -left-2 bg-gradient-to-r from-orange-500 to-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg z-10 flex items-center gap-1">
-          <span>🔥</span> {habit.streak} DAY STREAK
-        </div>
+        <motion.div 
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          key={habit.streak} // Pop animation on streak change
+          className={`absolute -top-3 -left-2 bg-gradient-to-r ${getMilestoneStyle()} text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg z-10 flex items-center gap-1`}
+        >
+          <span>{habit.streak >= 30 ? "🏆" : "🔥"}</span> 
+          {habit.streak} DAY {habit.streak >= 30 ? "LEGEND" : "STREAK"}
+        </motion.div>
       )}
 
       <div className="flex justify-between items-start mb-6 mt-2">
