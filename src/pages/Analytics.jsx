@@ -6,142 +6,118 @@ import {
 } from "chart.js";
 import { AuthContext } from "../context/AuthContext";
 import MobileNav from "../components/MobileNav";
-import WeeklySummary from "../components/WeeklySummary";
-import { calculateWeightedScore } from "./Dashboard"; // Importing the weighted logic
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 
 const Analytics = () => {
   const { user } = useContext(AuthContext);
   const [habits, setHabits] = useState([]);
-  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ month: "All", year: new Date().getFullYear().toString() });
 
-  const fetchAnalyticsData = useCallback(async () => {
+  const fetchDailyAnalytics = useCallback(async () => {
     if (!user) return;
     const token = localStorage.getItem("token");
     try {
       setLoading(true);
-      const response = await fetch(
-        `http://localhost:5000/api/analytics/stats?month=${filters.month}&year=${filters.year}`, 
-        { headers: { "Authorization": `Bearer ${token}` } }
-      );
+      const response = await fetch(`http://localhost:5000/api/analytics/daily`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      
+      if (!response.ok) throw new Error("Failed to fetch daily data");
+      
       const data = await response.json();
       setHabits(data.habits || []);
-      setHistory(data.history || []);
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
-  }, [user, filters]);
+  }, [user]);
 
-  useEffect(() => { fetchAnalyticsData(); }, [fetchAnalyticsData]);
+  useEffect(() => { fetchDailyAnalytics(); }, [fetchDailyAnalytics]);
 
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  };
+  // Combined performance logic to match your JSX variables
+  const performance = useMemo(() => {
+    if (!habits.length) return { best: null, worst: null };
+    
+    const sorted = [...habits].sort((a, b) => {
+      const scoreA = (a.current / (a.target || 1));
+      const scoreB = (b.current / (b.target || 1));
+      return scoreB - scoreA; 
+    });
 
-  // RESTORED: Performance Sorting
-  const sortedPerformance = useMemo(() => 
-    [...habits].sort((a, b) => (b.current / b.target) - (a.current / a.target))
-  , [habits]);
+    return {
+      best: sorted[0],
+      worst: sorted.length > 1 ? sorted[sorted.length - 1] : null
+    };
+  }, [habits]);
 
-  const bestHabit = sortedPerformance[0];
-  const worstHabit = sortedPerformance[sortedPerformance.length - 1];
+  const categoryChart = useMemo(() => {
+    const cats = habits.reduce((acc, h) => {
+      acc[h.category] = (acc[h.category] || 0) + 1;
+      return acc;
+    }, {});
+    return {
+      labels: Object.keys(cats),
+      datasets: [{
+        data: Object.values(cats),
+        backgroundColor: ["#6366f1", "#a855f7", "#ec4899", "#f59e0b", "#10b981"],
+        borderWidth: 0, cutout: '80%'
+      }]
+    };
+  }, [habits]);
 
-  // UPDATED: Using the same weighted score as Dashboard
-  const wellnessScore = useMemo(() => calculateWeightedScore(habits), [habits]);
-
-  if (loading) return <div className="h-screen bg-[#0f172a] flex items-center justify-center text-white font-black italic animate-pulse">GENERATING ANALYTICS...</div>;
+  if (loading) return <div className="h-screen bg-[#0f172a] flex items-center justify-center text-white font-black italic animate-pulse">SYNCING TODAY'S DATA...</div>;
 
   return (
     <div className="w-full text-white p-4 md:p-8 space-y-8 bg-[#0f172a] min-h-screen">
       <MobileNav />
       
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-4xl font-black italic uppercase tracking-tighter">Performance</h1>
-          <p className="text-indigo-400 font-medium tracking-wide">Detailed Analysis for {user?.fullName}</p>
-        </div>
-        <div className="flex gap-4 items-center">
-           <button onClick={fetchAnalyticsData} className="p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all text-xl">🔄</button>
-           <div className="bg-white/5 border border-white/10 p-4 px-8 rounded-3xl backdrop-blur-md shadow-lg">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Weighted Wellness</p>
-              <h2 className={`text-3xl font-black ${wellnessScore > 70 ? 'text-green-400' : 'text-orange-400'}`}>{wellnessScore}%</h2>
-           </div>
-        </div>
+      <header>
+          <h1 className="text-4xl font-black italic uppercase tracking-tighter text-indigo-500">Daily Snap</h1>
+          <p className="text-gray-400 font-medium">Performance for {new Date().toLocaleDateString()}</p>
       </header>
 
-      {/* RESTORED: Best & Worst Performance Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-green-500/10 border border-green-500/20 p-6 rounded-[2rem] flex items-center justify-between">
-          <div>
-            <p className="text-green-400 text-[10px] font-black uppercase tracking-widest mb-1">Peak Performer</p>
-            <h3 className="text-xl font-bold">{bestHabit ? bestHabit.title : "N/A"}</h3>
-          </div>
-          <div className="text-right">
-            <p className="text-green-400 font-black text-2xl">{bestHabit ? Math.round((bestHabit.current / bestHabit.target) * 100) : 0}%</p>
-          </div>
+        <div className="bg-green-500/10 border border-green-500/20 p-6 rounded-3xl">
+          <p className="text-green-400 text-[10px] font-black uppercase tracking-widest">Peak Performer Today</p>
+          <h3 className="text-xl font-bold">{performance.best?.title || "No data"}</h3>
+          <p className="text-2xl font-black text-green-400">
+            {performance.best ? Math.round((performance.best.current / performance.best.target) * 100) : 0}%
+          </p>
         </div>
-        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-[2rem] flex items-center justify-between">
-          <div>
-            <p className="text-red-400 text-[10px] font-black uppercase tracking-widest mb-1">Needs Attention</p>
-            <h3 className="text-xl font-bold">{worstHabit ? worstHabit.title : "N/A"}</h3>
-          </div>
-          <div className="text-right">
-            <p className="text-red-400 font-black text-2xl">{worstHabit ? Math.round((worstHabit.current / worstHabit.target) * 100) : 0}%</p>
-          </div>
+        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-3xl">
+          <p className="text-red-400 text-[10px] font-black uppercase tracking-widest">Needs Attention Today</p>
+          <h3 className="text-xl font-bold">{performance.worst?.title || "N/A"}</h3>
+          <p className="text-2xl font-black text-red-400">
+              {performance.worst ? Math.round((performance.worst.current / performance.worst.target) * 100) : 0}%
+          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white/5 p-8 rounded-[2.5rem] border border-white/10 backdrop-blur-sm">
-          <h2 className="text-xl font-bold mb-8">Target vs Achieved</h2>
-          <div className="h-[350px]">
+        <div className="lg:col-span-2 bg-white/5 p-8 rounded-[2rem] border border-white/10">
+          <h2 className="text-xl font-bold mb-6 italic">Today's Progress</h2>
+          <div className="h-[300px]">
             <Bar 
               data={{
                 labels: habits.map(h => h.title),
                 datasets: [
-                  { label: "Achieved", data: habits.map(h => h.current), backgroundColor: "#6366f1", borderRadius: 8 },
-                  { label: "Target", data: habits.map(h => h.target), backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 8 }
+                  { label: "Today", data: habits.map(h => h.current), backgroundColor: "#6366f1", borderRadius: 6 },
+                  { label: "Goal", data: habits.map(h => h.target), backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 6 }
                 ]
               }} 
-              options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }}
+              options={{ responsive: true, maintainAspectRatio: false }}
             />
           </div>
         </div>
 
-        <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 flex flex-col items-center">
-          <h2 className="text-sm font-bold text-gray-400 mb-8 uppercase tracking-widest text-center">Focus Area Distribution</h2>
-          <div className="h-[250px] w-full">
-            <Doughnut 
-              data={{
-                labels: [...new Set(habits.map(h => h.category))],
-                datasets: [{
-                  data: [...new Set(habits.map(h => h.category))].map(cat => habits.filter(h => h.category === cat).length),
-                  backgroundColor: ["#6366f1", "#a855f7", "#ec4899", "#f59e0b", "#10b981"],
-                  borderWidth: 0,
-                  cutout: '80%'
-                }]
-              }}
-              options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }}
-            />
+        <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 flex flex-col items-center">
+          <h2 className="text-sm font-bold text-gray-400 mb-6 uppercase tracking-widest">Focus Distribution</h2>
+          <div className="h-[200px] w-full">
+            <Doughnut data={categoryChart} options={{ maintainAspectRatio: false }} />
           </div>
         </div>
-      </div>
-
-      <div className="bg-white/5 border border-white/10 p-10 rounded-[3rem] backdrop-blur-sm shadow-2xl">
-        <h2 className="text-xl font-black mb-10 tracking-widest uppercase italic flex items-center gap-4">
-            <div className="w-2 h-8 bg-indigo-500 rounded-full"></div> Activity History
-        </h2>
-        <WeeklySummary 
-          history={history} 
-          onFilterChange={handleFilterChange} 
-          selectedMonth={filters.month}
-          selectedYear={filters.year}
-        />
       </div>
     </div>
   );
