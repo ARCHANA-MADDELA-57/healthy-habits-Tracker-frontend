@@ -15,7 +15,8 @@ export const useHabits = (user) => {
   const fetchHabits = useCallback(async () => {
     if (!user) return;
     try {
-      const response = await fetch("http://localhost:5000/api/habits/my-habits", {
+      // Modify your API call or Supabase query to filter:
+      const response = await fetch("http://localhost:5000/api/habits/my-habits?archived=false", {
         headers: getAuthHeader()
       });
       const data = await response.json();
