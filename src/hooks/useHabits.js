@@ -126,19 +126,21 @@ export const useHabits = (user) => {
   };
 
   const deleteHabit = async (id) => {
-    // Optimistic Delete
+    // 1. It removes it from the screen first
     const previousHabits = [...habits];
     setHabits(prev => prev.filter(h => h.id !== id));
-
+  
     try {
       const response = await fetch(`http://localhost:5000/api/habits/${id}`, {
-        method: "DELETE",
+        method: "DELETE", // This is what hits your backend delete route
         headers: getAuthHeader()
       });
-      if (!response.ok) throw new Error();
+      
+      if (!response.ok) throw new Error(); // If the backend fails (Error 23503), this runs
       toast.info("Habit deleted");
     } catch (err) {
-      setHabits(previousHabits); // Rollback if server fails
+      // 2. This puts the habit back on the screen and shows the error
+      setHabits(previousHabits); 
       toast.error("Could not delete habit");
     }
   };
