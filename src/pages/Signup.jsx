@@ -1,20 +1,21 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "react-toastify"; // 1. Import toast
+import { toast } from "react-toastify";
+import { Eye, EyeOff } from "lucide-react"; 
 
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
   
-    // 1. Frontend Regex Checks
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
   
@@ -39,7 +40,6 @@ const Signup = () => {
         toast.success("Signup successful! You can now login.");
         setTimeout(() => navigate("/login"), 2000);
       } else {
-        // This catches "User already registered" from Supabase
         toast.error(data.error || "Signup failed");
       }
     } catch (err) {
@@ -83,15 +83,24 @@ const Signup = () => {
             required
           />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-            className="w-full p-3 mb-2 rounded-lg bg-white/10 border border-white/10 outline-none focus:border-indigo-400 transition-all disabled:opacity-50"
-            required
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              className="w-full p-3 rounded-lg bg-white/10 border border-white/10 outline-none focus:border-indigo-400 transition-all disabled:opacity-50 pr-12"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
 
           <button
             type="submit"
@@ -109,22 +118,13 @@ const Signup = () => {
                 >
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 1,
-                      ease: "linear",
-                    }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                     className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
                   />
                   <span>Creating Account...</span>
                 </motion.div>
               ) : (
-                <motion.span
-                  key="text"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
+                <motion.span key="text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   Signup
                 </motion.span>
               )}
@@ -134,9 +134,7 @@ const Signup = () => {
 
         <p className="text-sm text-center mt-6 text-gray-400">
           Already have an account?
-          <Link to="/login" className="text-indigo-400 ml-1 hover:underline">
-            Login
-          </Link>
+          <Link to="/login" className="text-indigo-400 ml-1 hover:underline">Login</Link>
         </p>
       </motion.div>
     </div>

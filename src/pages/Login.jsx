@@ -2,12 +2,14 @@ import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
-import { toast } from "react-toastify"; // 1. Import toast
+import { toast } from "react-toastify";
+import { Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("idle");
+  const [showPassword, setShowPassword] = useState(false);
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -31,9 +33,7 @@ const Login = () => {
       const data = await response.json();
   
       if (response.ok) {
-        // ✅ Pass BOTH user and token to context
         login(data.user, data.token); 
-        
         setStatus("success");
         toast.success(`Welcome back, ${data.user.fullName}!`);
         setTimeout(() => navigate("/dashboard"), 1500);
@@ -67,15 +67,25 @@ const Login = () => {
             required
           />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={status !== "idle"}
-            className="w-full p-3 mb-2 rounded-lg bg-white/10 border border-white/10 outline-none focus:border-indigo-400 transition-all disabled:opacity-50"
-            required
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={status !== "idle"}
+              className="w-full p-3 rounded-lg bg-white/10 border border-white/10 outline-none focus:border-indigo-400 transition-all disabled:opacity-50 pr-12"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+              disabled={status !== "idle"}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
 
           <button
             type="submit"
@@ -117,12 +127,7 @@ const Login = () => {
               )}
 
               {status === "idle" && (
-                <motion.span
-                  key="idle"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
+                <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   Login
                 </motion.span>
               )}
