@@ -60,7 +60,6 @@ const Header = ({ userName, neglectedHabit, quote }) => {
             <p className="text-white font-bold text-sm leading-tight">
               {neglectedHabit.title} is at {Math.round((neglectedHabit.current / neglectedHabit.target) * 100)}%
             </p>
-            <p className="text-[9px] text-red-300/60 mt-1 font-bold italic underline group-hover:text-red-300 transition-colors">Click to take action →</p>
           </div>
         </motion.div>
       )}
