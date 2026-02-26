@@ -1,26 +1,15 @@
-// public/sw.js
 self.addEventListener('push', function(event) {
-    let data = { title: 'HealthyHabits', body: 'Time to track your progress!' };
-
-    try {
-        if (event.data) {
-            // Attempt to parse JSON from the worker
-            data = event.data.json();
-        }
-    } catch (e) {
-        // Fallback for plain text tests
-        data = { title: 'HealthyHabits Alert', body: event.data.text() };
-    }
-
-    const options = {
-        body: data.body,
-        icon: '/logo192.png', 
+    if (event.data) {
+      const payload = event.data.json();
+      
+      // This is the magic part that actually pops the window
+      const promiseChain = self.registration.showNotification(payload.title, {
+        body: payload.body,
+        icon: '/logo192.png', // Ensure this file exists in your public folder
         badge: '/logo192.png',
         vibrate: [100, 50, 100],
-        requireInteraction: true // This keeps the notification visible until clicked
-    };
-
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-    );
-});
+      });
+  
+      event.waitUntil(promiseChain);
+    }
+  });

@@ -12,31 +12,21 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 export const useNotifications = (user) => {
-  useEffect(() => {
-    const isEnabled = localStorage.getItem("notificationsEnabled") === "true";
-    if (isEnabled && user && "serviceWorker" in navigator) {
-      registerPushSubscription(user.id);
-    }
-  }, [user]);
-
-  const registerPushSubscription = async (userId) => {
+  const registerPushSubscription = async () => {
     try {
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
 
       if (!subscription) {
-        // --- NEW: FETCH PUBLIC KEY FROM BACKEND ---
         const keyResponse = await fetch("http://localhost:5000/api/auth/vapid-public-key");
         const { publicKey } = await keyResponse.json();
-
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey)
         });
       }
 
-      // Send subscription to backend to save in DB
-      await fetch("http://localhost:5000/api/auth/subscribe", {
+      const res = await fetch("http://localhost:5000/api/auth/subscribe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,9 +35,21 @@ export const useNotifications = (user) => {
         body: JSON.stringify({ subscription })
       });
 
-      console.log("Push Notification Subscription successful");
+      if (res.ok) {
+        localStorage.setItem("subscriptionSynced", "true");
+      }
     } catch (error) {
-      console.error("Failed to subscribe to push notifications:", error);
+      console.error("Sync failed", error);
     }
   };
+
+  useEffect(() => {
+    const isEnabled = localStorage.getItem("notificationsEnabled") === "true";
+    if (isEnabled && user) {
+      registerPushSubscription();
+    }
+  }, [user]);
+
+  // Essential return to prevent Settings.jsx crash
+  return { registerPushSubscription }; 
 };

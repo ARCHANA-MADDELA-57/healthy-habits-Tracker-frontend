@@ -4,6 +4,7 @@ import { Bell, BellOff, RefreshCw, Smartphone } from "lucide-react";
 import { useGoogleLogin } from '@react-oauth/google';
 import { healthService, fetchRealGoogleFitData } from '../services/healthService';
 import { AuthContext } from "../context/AuthContext";
+import { useNotifications } from "../hooks/useNotifications";
 
 const Settings = () => {
   const { user: authUser, updateUserState } = useContext(AuthContext);
@@ -13,6 +14,8 @@ const Settings = () => {
   
   const [healthData, setHealthData] = useState(healthService.fetchData());
   const [isSyncing, setIsSyncing] = useState(false);
+
+  const { registerPushSubscription } = useNotifications(authUser);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     localStorage.getItem("notificationsEnabled") === "true"
@@ -41,12 +44,34 @@ const Settings = () => {
     flow: 'implicit', 
   });
 
-  const toggleNotifications = () => {
+  const toggleNotifications = async () => {
     const newState = !notificationsEnabled;
     setNotificationsEnabled(newState);
     localStorage.setItem("notificationsEnabled", newState);
-    if (newState && "Notification" in window) {
-      Notification.requestPermission();
+  
+    if (newState) {
+      // ON LOGIC: Request permission and register
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        registerPushSubscription(); // This now returns correctly, stopping the crash
+      }
+    } else {
+      // OFF LOGIC: Remove from database
+      try {
+        const response = await fetch("http://localhost:5000/api/auth/unsubscribe", {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+        
+        if (response.ok) {
+          console.log("Successfully unsubscribed from server");
+          localStorage.removeItem("subscriptionSynced"); // Reset sync flag
+        }
+      } catch (err) {
+        console.error("Failed to delete subscription:", err);
+      }
     }
   };
 

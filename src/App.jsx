@@ -15,9 +15,9 @@ import Settings from "./pages/Settings";
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('Service Worker registered!', reg))
-      .catch(err => console.err('Service Worker registration failed', err));
+    navigator.serviceWorker.register('/sw.js') // Ensure sw.js is in your PUBLIC folder
+      .then(reg => console.log('SW Registered!', reg))
+      .catch(err => console.log('SW Register Error:', err));
   });
 }
 
