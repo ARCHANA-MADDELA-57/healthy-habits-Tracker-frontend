@@ -107,13 +107,21 @@ const Analytics = () => {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
-
+  
       const dailyData = await dailyRes.json();
       const weeklyData = await weeklyRes.json();
       const monthlyData = await monthlyRes.json();
-
+  
+      // DEBUG: Look at your console to see what 'weeklyData' actually is
+      console.log("Weekly Data Received:", weeklyData);
+  
       setHabits(dailyData.habits || []);
-      setHistoryTrend(weeklyData || []);
+      
+      // FIX: If weeklyData is an object, we need the array inside it
+      // Check if your backend sends { trend: [...] } or just [...]
+      const trendArray = Array.isArray(weeklyData) ? weeklyData : (weeklyData.trend || []);
+      setHistoryTrend(trendArray);
+  
       setMonthlyTrend(monthlyData.trend || []);
       setMonthlyAvg(monthlyData.average || 0);
     } catch (err) {
