@@ -15,18 +15,18 @@ export const useHabits = (user) => {
   const fetchHabits = useCallback(async () => {
     if (!user) return;
     try {
-      // Modify your API call or Supabase query to filter:
-      const response = await fetch("http://localhost:5000/api/habits/my-habits?archived=false", {
+      const response = await fetch("http://localhost:5000/api/habits/my-habits", {
         headers: getAuthHeader()
       });
       const data = await response.json();
+      
       if (response.ok) {
-        setHabits(data);
+        // ONLY set habits that are not archived
+        const activeOnly = data.filter(h => h.is_archived === false);
+        setHabits(activeOnly);
       }
     } catch (err) {
-      console.error("Failed to fetch habits:", err);
-    } finally {
-      setLoading(false);
+      console.error("Fetch error:", err);
     }
   }, [user]);
 
