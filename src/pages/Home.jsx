@@ -255,8 +255,8 @@ const Home = () => {
                         <h3 className="text-lg font-semibold text-white mb-4">Quick Links</h3>
                         <ul className="space-y-2 text-sm">
                             <li><Link to="/" className="hover:text-purple-400 transition">Home</Link></li>
-                            <li><Link to="/login" className="hover:text-purple-400 transition">Login</Link></li>
-                            <li><Link to="/signup" className="hover:text-purple-400 transition">Register</Link></li>
+                            <li><Link to="https://healthy-habits-tracker-backend.onrender.com/api/auth/login" className="hover:text-purple-400 transition">Login</Link></li>
+                            <li><Link to="https://healthy-habits-tracker-backend.onrender.com/api/auth/signup" className="hover:text-purple-400 transition">Register</Link></li>
                         </ul>
                     </div>
                     <div>
