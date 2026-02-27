@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async (token) => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/me", {
+      const response = await fetch("https://healthy-habits-tracker-backend.onrender.com/api/auth/me", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();

@@ -97,13 +97,13 @@ const Analytics = () => {
     try {
       setLoading(true);
       const [dailyRes, weeklyRes, monthlyRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/analytics/daily`, {
+        fetch(`https://healthy-habits-tracker-backend.onrender.com/api/analytics/daily`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`http://localhost:5000/api/analytics/history-trend`, {
+        fetch(`https://healthy-habits-tracker-backend.onrender.com/api/analytics/history-trend`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`http://localhost:5000/api/analytics/monthly-trend`, {
+        fetch(`https://healthy-habits-tracker-backend.onrender.com/api/analytics/monthly-trend`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);

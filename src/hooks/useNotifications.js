@@ -18,7 +18,7 @@ export const useNotifications = (user) => {
       let subscription = await registration.pushManager.getSubscription();
 
       if (!subscription) {
-        const keyResponse = await fetch("http://localhost:5000/api/auth/vapid-public-key");
+        const keyResponse = await fetch("https://healthy-habits-tracker-backend.onrender.com/api/auth/vapid-public-key");
         const { publicKey } = await keyResponse.json();
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -26,7 +26,7 @@ export const useNotifications = (user) => {
         });
       }
 
-      const res = await fetch("http://localhost:5000/api/auth/subscribe", {
+      const res = await fetch("https://healthy-habits-tracker-backend.onrender.com/api/auth/subscribe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

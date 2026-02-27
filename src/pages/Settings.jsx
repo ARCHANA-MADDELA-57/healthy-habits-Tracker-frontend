@@ -58,7 +58,7 @@ const Settings = () => {
     } else {
       // OFF LOGIC: Remove from database
       try {
-        const response = await fetch("http://localhost:5000/api/auth/unsubscribe", {
+        const response = await fetch("https://healthy-habits-tracker-backend.onrender.com/api/auth/unsubscribe", {
           method: "DELETE",
           headers: {
             "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -81,7 +81,7 @@ const Settings = () => {
     
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/auth/update-profile", {
+      const response = await fetch("https://healthy-habits-tracker-backend.onrender.com/api/auth/update-profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

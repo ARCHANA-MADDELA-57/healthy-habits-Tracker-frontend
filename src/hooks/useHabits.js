@@ -15,7 +15,7 @@ export const useHabits = (user) => {
   const fetchHabits = useCallback(async () => {
     if (!user) return;
     try {
-      const response = await fetch("http://localhost:5000/api/habits/my-habits", {
+      const response = await fetch("https://healthy-habits-tracker-backend.onrender.com/api/habits/my-habits", {
         headers: getAuthHeader()
       });
       const data = await response.json();
@@ -36,7 +36,7 @@ export const useHabits = (user) => {
 
   const addHabit = async (title, description, target, category, isEveryday, unit) => {
     try {
-      const response = await fetch("http://localhost:5000/api/habits/add", {
+      const response = await fetch("https://healthy-habits-tracker-backend.onrender.com/api/habits/add", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -77,7 +77,7 @@ export const useHabits = (user) => {
     }));
 
     try {
-      await fetch(`http://localhost:5000/api/habits/increment/${id}`, {
+      await fetch(`https://healthy-habits-tracker-backend.onrender.com/api/habits/increment/${id}`, {
         method: "PATCH",
         headers: getAuthHeader()
       });
@@ -89,7 +89,7 @@ export const useHabits = (user) => {
 
   const decrementProgress = async (id) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/habits/decrement/${id}`, {
+      const response = await fetch(`https://healthy-habits-tracker-backend.onrender.com/api/habits/decrement/${id}`, {
         method: "PATCH",
         headers: getAuthHeader()
       });
@@ -101,7 +101,7 @@ export const useHabits = (user) => {
 
   const updateHabit = async (id, title, description, target, category, isEveryday, unit) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/habits/update/${id}`, {
+      const response = await fetch(`https://healthy-habits-tracker-backend.onrender.com/api/habits/update/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -131,7 +131,7 @@ export const useHabits = (user) => {
     setHabits(prev => prev.filter(h => h.id !== id));
   
     try {
-      const response = await fetch(`http://localhost:5000/api/habits/${id}`, {
+      const response = await fetch(`https://healthy-habits-tracker-backend.onrender.com/api/habits/${id}`, {
         method: "DELETE", // This is what hits your backend delete route
         headers: getAuthHeader()
       });
