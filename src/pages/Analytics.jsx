@@ -55,22 +55,51 @@ const Analytics = () => {
   const downloadPDFReport = async () => {
     const element = reportRef.current;
     if (!element) return;
-    const canvas = await html2canvas(element, {
-      backgroundColor: "#16113a",
-      scale: 2,
-    });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "px",
-      format: "a4",
-    });
-    const width = pdf.internal.pageSize.getWidth();
-    const height = (canvas.height * width) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 20, width, height);
-    pdf.save(
-      `Habit-Analytics-${user?.fullName || "User"}-${new Date().toLocaleDateString()}.pdf`
-    );
+  
+    // 1. Save original styles to restore them later
+    const originalWidth = element.style.width;
+    const originalMaxHeight = element.style.maxHeight;
+  
+    try {
+      // 2. Force a "Desktop" width for the capture (e.g., 1200px)
+      // This ensures the grid layouts (lg:grid-cols-3) trigger correctly
+      element.style.width = "1200px";
+      element.style.maxHeight = "none"; 
+  
+      const canvas = await html2canvas(element, {
+        backgroundColor: "#16113a",
+        scale: 2, // Keeps it high resolution
+        useCORS: true, // Helps with loading external images/fonts
+        windowWidth: 1200, // Forces the viewport width for the canvas
+      });
+  
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: "a4",
+      });
+  
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      // Calculate ratio to fit the width of the PDF
+      const imgProps = pdf.getImageProperties(imgData);
+      const renderHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  
+      // 3. Add to PDF (centered and with a small margin)
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, renderHeight);
+      
+      pdf.save(
+        `Habit-Analytics-${user?.fullName || "User"}-${new Date().toLocaleDateString()}.pdf`
+      );
+    } catch (error) {
+      console.error("PDF Export failed:", error);
+    } finally {
+      // 4. IMPORTANT: Restore the original mobile styles
+      element.style.width = originalWidth;
+      element.style.maxHeight = originalMaxHeight;
+    }
   };
 
   // UPDATED SHARE MILESTONE LOGIC WITH PREVIEW
