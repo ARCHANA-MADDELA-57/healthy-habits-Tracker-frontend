@@ -285,13 +285,11 @@ Or register a new account.
 
 ## 🎥 Video Walkthrough
 
-<details>
-  <summary>🎥 Click to view Video Walkthrough</summary>
-  <br>
+## 🎥 Video Walkthrough
 
-  ./assets/video-link.mp4
+[![Watch the Walkthrough](https://img.shields.io/badge/Play_Video-Google_Drive-blue?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/1nZuOkWfj1moOXTbWSLPyJ5kYSX_SeQ8X/view?usp=sharing)
 
-</details>
+*Click the button above to view the full project demonstration.*
 
 ---
 
