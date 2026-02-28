@@ -12,9 +12,6 @@ https://healthy-habits-trackerr.netlify.app/
 **Backend API (Render):**  
 https://healthy-habits-tracker-backend.onrender.com
 
-**Backend Github Repo:** 
-https://github.com/ARCHANA-MADDELA-57/healthy-habits-tracker-backend
-
 ---
 
 ## 📌 Project Description
@@ -195,10 +192,10 @@ Authorization: Bearer <token>
 
 ## 📦 Installation & Setup
 
-## Folder Structure
+### Folder Structure
 
+```text
 src/
-│
 ├── components/
 ├── pages/
 ├── context/
@@ -325,9 +322,9 @@ Add your Loom or YouTube walkthrough link here.
 
 **Maddela Archana**
 
-🌐 Portfolio: https://maddela-archana.vercel.app/ 
-💼 LinkedIn: https://www.linkedin.com/in/archana-maddela/ 
-📧 Email: archanaarchu5757@gmail.com 
+🌐 **Portfolio:** [https://maddela-archana.vercel.app/](https://maddela-archana.vercel.app/)  
+💼 **LinkedIn:** [https://www.linkedin.com/in/archana-maddela/](https://www.linkedin.com/in/archana-maddela/)  
+📧 **Email:** archanaarchu5757@gmail.com
 
 ---
 
