@@ -271,7 +271,7 @@ Or register a new account.
 Add screenshots inside a `screenshots` folder:
 
 ```markdown
-![Landing Page](./Screenshots/Home.png)
+![Landing Page](/Screenshots/Home.png)
 ![Signup Page](./Screenshots/Signup.png)
 ![Login Page](./Screenshots/Login.png)
 ![Dashboard](./Screenshots/Dashboard.png)
