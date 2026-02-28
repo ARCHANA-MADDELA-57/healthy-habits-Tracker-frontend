@@ -287,7 +287,7 @@ Or register a new account.
 
 ## 🎥 Video Walkthrough
 
-[![Watch the Walkthrough](https://img.shields.io/badge/Play_Video-Google_Drive-blue?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/1W-731chDfmHifpTseyfDDvoFUmGP0bAv/view?usp=drive_link)
+[![Watch the Walkthrough](https://img.shields.io/badge/Play_Video-Google_Drive-blue?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/17uC63xe-TraPfe4dB-8j2i1YM9AsDvc-/view?usp=sharing)
 
 *Click the button above to view the full project demonstration.*
 
