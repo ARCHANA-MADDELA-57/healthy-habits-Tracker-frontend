@@ -268,18 +268,21 @@ Or register a new account.
 
 ## 📸 Screenshots
 
-Add screenshots inside a `screenshots` folder:
+![Landing Page](./Screenshots/Home.png)
 
-```markdown
-![Landing Page](/Screenshots/Home.png)
 ![Signup Page](./Screenshots/Signup.png)
+
 ![Login Page](./Screenshots/Login.png)
+
 ![Dashboard](./Screenshots/Dashboard.png)
+
 ![AddHabit Form](./Screenshots/AddHabit.png)
+
 ![Daily Activity](./Screenshots/Analytics1.png)
+
 ![Weekly/Monthly Activity](./Screenshots/Analytics2.png)
+
 ![Settings](./Screenshots/Settings.png)
-```
 
 ---
 
