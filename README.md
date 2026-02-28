@@ -285,7 +285,13 @@ Or register a new account.
 
 ## 🎥 Video Walkthrough
 
-Add your Loom or YouTube walkthrough link here.
+<details>
+  <summary>🎥 Click to view Video Walkthrough</summary>
+  <br>
+
+  ./assets/video-link.mp4
+
+</details>
 
 ---
 
